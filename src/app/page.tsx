@@ -11,6 +11,7 @@ type MenuItem = {
   is_available: boolean;
   category_id: number;
   category_name: string;
+  image_url: string | null;
 };
 
 type Order = {
@@ -110,11 +111,33 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [category, setCategory] = useState("All");
   const [cart, setCart] = useState<number[]>([]);
-
+  const [currentUser, setCurrentUser] = useState<{
+  full_name: string;
+  email: string;
+  role: "ADMIN" | "STAFF" | "CUSTOMER";
+  
+} | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
   const [menuError, setMenuError] = useState("");
+  // Admin food management states
+const [showFoodForm, setShowFoodForm] = useState(false);
+const [foodName, setFoodName] = useState("");
+const [foodDescription, setFoodDescription] = useState("");
+const [foodPrice, setFoodPrice] = useState("");
+const [foodCategory, setFoodCategory] = useState("Breakfast");
+const [foodAvailable, setFoodAvailable] = useState(true);
+const [foodSaving, setFoodSaving] = useState(false);
+const [foodMessage, setFoodMessage] = useState("");
 
+// Food image upload
+const [foodImage, setFoodImage] = useState<File | null>(null);
+const [existingFoodImage, setExistingFoodImage] = useState("");
+
+// Admin: Edit food states
+const [editingFoodId, setEditingFoodId] = useState<number | null>(null);
+const [foodUpdating, setFoodUpdating] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState("");
@@ -187,7 +210,167 @@ export default function Home() {
       setMenuLoading(false);
     }
   }
+  // Upload selected food photo
+async function uploadFoodImage(): Promise<string | null> {
+  if (!foodImage) return null;
 
+  const formData = new FormData();
+  formData.append("image", foodImage);
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "Image upload failed.");
+  }
+
+  return data.image_url;
+}
+  // Admin: Add a new food item
+async function saveFoodItem() {
+  try {
+    setFoodSaving(true);
+    setFoodMessage("");
+    const uploadedImageUrl = await uploadFoodImage();
+
+    const response = await fetch("/api/menu", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        item_name: foodName.trim(),
+        description: foodDescription.trim(),
+        price: Number(foodPrice),
+       image_url: existingFoodImage || uploadedImageUrl,
+        category_id: {
+          Breakfast: 1,
+          Lunch: 2,
+          Snacks: 3,
+          Drinks: 4,
+        }[foodCategory],
+        is_available: foodAvailable,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Unable to add food item.");
+    }
+
+    setFoodMessage("Food item added successfully!");
+    setFoodName("");
+    setFoodDescription("");
+    setFoodPrice("");
+    setFoodCategory("Breakfast");
+    setFoodAvailable(true);
+    setFoodImage(null);
+    setExistingFoodImage("");
+    setShowFoodForm(false);
+
+    await fetchMenu();
+  } catch (error) {
+    setFoodMessage(
+      error instanceof Error
+        ? error.message
+        : "Unable to add food item."
+    );
+  } finally {
+    setFoodSaving(false);
+  }
+}// Admin: Update an existing food item
+async function updateFoodItem() {
+  if (editingFoodId === null) return;
+
+  try {
+    setFoodUpdating(true);
+    setFoodMessage("");
+    const uploadedImageUrl = await uploadFoodImage();
+
+    const response = await fetch("/api/menu", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        item_id: editingFoodId,
+        item_name: foodName.trim(),
+        description: foodDescription.trim(),
+        price: Number(foodPrice),
+        image_url: existingFoodImage || uploadedImageUrl,
+        category_id: {
+          Breakfast: 1,
+          Lunch: 2,
+          Snacks: 3,
+          Drinks: 4,
+        }[foodCategory],
+        is_available: foodAvailable,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Unable to update food item.");
+    }
+
+    setFoodMessage("Food item updated successfully!");
+    setEditingFoodId(null);
+    setShowFoodForm(false);
+    setFoodImage(null);
+    
+
+    await fetchMenu();
+  } catch (error) {
+    setFoodMessage(
+      error instanceof Error
+        ? error.message
+        : "Unable to update food item."
+    );
+  } finally {
+    setFoodUpdating(false);
+  }
+}
+// Admin: Delete a food item
+async function deleteFoodItem(itemId: number) {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this food item?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch("/api/menu", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        item_id: itemId,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Unable to delete food item.");
+    }
+
+    setFoodMessage("Food item deleted successfully!");
+    await fetchMenu();
+  } catch (error) {
+    setFoodMessage(
+      error instanceof Error
+        ? error.message
+        : "Unable to delete food item."
+    );
+  }
+}
   // Fetch orders
   async function fetchOrders() {
     try {
@@ -319,72 +502,84 @@ export default function Home() {
 
   // Submit customer feedback to MongoDB
   async function submitFeedback() {
-    if (feedbackSubmitting) return;
+  if (feedbackSubmitting) return;
 
-    if (!customerName.trim()) {
-      setFeedbackSuccess(false);
-      setFeedbackMessage("Please enter your name.");
-      return;
-    }
-
-    if (!foodItem) {
-      setFeedbackSuccess(false);
-      setFeedbackMessage("Please select a food item.");
-      return;
-    }
-
-    if (!feedbackComment.trim()) {
-      setFeedbackSuccess(false);
-      setFeedbackMessage("Please enter your feedback.");
-      return;
-    }
-
-    const ratingValue = Number(feedbackRating);
-    if (!Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5) {
-      setFeedbackSuccess(false);
-      setFeedbackMessage("Please select a valid rating.");
-      return;
-    }
-
-    setFeedbackSubmitting(true);
-    setFeedbackMessage("");
+  if (!customerName.trim()) {
     setFeedbackSuccess(false);
-
-    try {
-      const response = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer_name: customerName.trim(),
-          food_item: foodItem,
-          rating: ratingValue,
-          comment: feedbackComment.trim(),
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Unable to submit feedback");
-      }
-
-      setFeedbackSuccess(true);
-      setFeedbackMessage("Thank you! Your feedback was submitted successfully.");
-      setCustomerName("");
-      setFoodItem("");
-      setFeedbackRating("5");
-      setFeedbackComment("");
-      await fetchFeedback();
-    } catch (error) {
-      console.error("Feedback submission error:", error);
-      setFeedbackSuccess(false);
-      setFeedbackMessage(
-        error instanceof Error ? error.message : "Unable to submit feedback."
-      );
-    } finally {
-      setFeedbackSubmitting(false);
-    }
+    setFeedbackMessage("Please enter your name.");
+    return;
   }
 
+  if (!foodItem) {
+    setFeedbackSuccess(false);
+    setFeedbackMessage("Please select a food item.");
+    return;
+  }
+
+  if (!feedbackComment.trim()) {
+    setFeedbackSuccess(false);
+    setFeedbackMessage("Please enter your feedback.");
+    return;
+  }
+
+  const ratingValue = Number(feedbackRating);
+
+  if (!Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+    setFeedbackSuccess(false);
+    setFeedbackMessage("Please select a valid rating.");
+    return;
+  }
+
+  setFeedbackSubmitting(true);
+  setFeedbackMessage("");
+  setFeedbackSuccess(false);
+
+  try {
+    const response = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer_name: customerName.trim(),
+        food_item: foodItem,
+        rating: ratingValue,
+        comment: feedbackComment.trim(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Unable to submit feedback");
+    }
+
+    setFeedbackSuccess(true);
+    setFeedbackMessage(
+      "Thank you! Your feedback was submitted successfully."
+    );
+
+    setCustomerName("");
+    setFoodItem("");
+    setFeedbackRating("5");
+    setFeedbackComment("");
+
+    // Only Admin and Staff can retrieve all customer reviews.
+    if (userRole === "ADMIN" || userRole === "STAFF") {
+      await fetchFeedback();
+    }
+
+  } catch (error) {
+    console.error("Feedback submission error:", error);
+
+    setFeedbackSuccess(false);
+    setFeedbackMessage(
+      error instanceof Error
+        ? error.message
+        : "Unable to submit feedback."
+    );
+  } finally {
+    setFeedbackSubmitting(false);
+  }
+}
  // Initial data loading based on user role
 useEffect(() => {
   async function loadDashboard() {
@@ -399,6 +594,7 @@ useEffect(() => {
 
       const role = data.user.role;
       setUserRole(role);
+      setCurrentUser(data.user);
 
       await Promise.all([
         fetchMenu(),
@@ -537,15 +733,41 @@ useEffect(() => {
       Number(item.quantity) <= Number(item.minimum_stock)
   );
     // Overview
+   
   function renderOverview() {
     return (
       <div className="space-y-7">
-        <div>
-          <h2 className="text-2xl font-bold">Dashboard Overview</h2>
-          <p className="mt-1 text-slate-500">
-            Welcome to Smart Canteen Management System.
-          </p>
-        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+    <p className="mt-1 text-slate-500">
+      Welcome to Smart Canteen Management System.
+    </p>
+  </div>
+
+  {currentUser && (
+    <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-lg font-bold text-orange-600">
+        {currentUser.full_name
+          .split(" ")
+          .map((name) => name[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase()}
+      </div>
+
+      <div>
+        <p className="font-semibold text-slate-800">
+          {currentUser.full_name}
+        </p>
+        <p className="text-xs text-slate-500">{currentUser.email}</p>
+        <span className="text-xs font-semibold text-orange-600">
+          {currentUser.role}
+        </span>
+      </div>
+    </div>
+  )}
+</div>
 
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl bg-white p-6 shadow-sm">
@@ -690,19 +912,184 @@ useEffect(() => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-bold">Food Menu</h2>
-            <p className="mt-1 text-slate-500">
-              Browse food items and add them to your cart.
-            </p>
+           <p className="mt-1 text-slate-500">
+  {userRole === "ADMIN"
+    ? "Manage food items and monitor availability."
+    : userRole === "STAFF"
+    ? "View food items and manage availability."
+    : "Browse food items and add them to your cart."}
+</p>
           </div>
 
-          <button
-            onClick={fetchMenu}
-            disabled={menuLoading}
-            className="rounded-lg bg-slate-800 px-4 py-2 text-white disabled:opacity-50"
-          >
-            {menuLoading ? "Loading..." : "Refresh Menu"}
-          </button>
+          <div className="flex gap-2">
+  {userRole === "ADMIN" && (
+    <button
+      onClick={() => {
+        setFoodMessage("");
+        setShowFoodForm(!showFoodForm);
+      }}
+      className="rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white hover:bg-orange-600"
+    >
+      + Add Food Item
+    </button>
+  )}
+
+  <button
+    onClick={fetchMenu}
+    disabled={menuLoading}
+    className="rounded-lg bg-slate-800 px-4 py-2 text-white disabled:opacity-50"
+  >
+    {menuLoading ? "Loading..." : "Refresh Menu"}
+  </button>
+</div>
         </div>
+        {userRole === "ADMIN" && showFoodForm && (
+  <section className="rounded-2xl bg-white p-6 shadow-sm">
+   <h3 className="text-xl font-bold">
+  {editingFoodId !== null ? "Edit Food Item" : "Add New Food Item"}
+</h3>
+    <form
+      className="mt-4 grid gap-4 sm:grid-cols-2"
+onSubmit={(event) => {
+  event.preventDefault();
+
+  if (editingFoodId !== null) {
+    void updateFoodItem();
+  } else {
+    void saveFoodItem();
+  }
+}}
+    >
+      <div>
+        <label className="mb-1 block text-sm font-medium">Food Name</label>
+        <input
+          value={foodName}
+          onChange={(event) => setFoodName(event.target.value)}
+          required
+          placeholder="e.g. Masala Dosa"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">Price (₹)</label>
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          value={foodPrice}
+          onChange={(event) => setFoodPrice(event.target.value)}
+          required
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">Category</label>
+        <select
+          value={foodCategory}
+          onChange={(event) => setFoodCategory(event.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        >
+          <option value="Breakfast">Breakfast</option>
+          <option value="Lunch">Lunch</option>
+          <option value="Snacks">Snacks</option>
+          <option value="Drinks">Drinks</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">Description</label>
+        <input
+          value={foodDescription}
+          onChange={(event) => setFoodDescription(event.target.value)}
+          placeholder="Short description"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      </div>
+  <div>
+  <label className="mb-1 block text-sm font-medium">
+    Upload New Food Photo
+  </label>
+
+  <input
+    type="file"
+    accept="image/png,image/jpeg,image/webp"
+    onChange={(event) => {
+      setFoodImage(event.target.files?.[0] || null);
+      setExistingFoodImage("");
+    }}
+    className="w-full rounded-lg border border-slate-300 px-3 py-2"
+  />
+
+  <p className="mt-1 text-xs text-slate-500">
+    JPG, PNG or WEBP. Maximum size: 5 MB.
+  </p>
+
+  <label className="mb-1 mt-3 block text-sm font-medium">
+    Or Reuse an Existing Photo
+  </label>
+
+  <select
+    value={existingFoodImage}
+    onChange={(event) => {
+      setExistingFoodImage(event.target.value);
+      setFoodImage(null);
+      setExistingFoodImage("");
+
+    }}
+    className="w-full rounded-lg border border-slate-300 px-3 py-2"
+  >
+    <option value="">Select an existing photo</option>
+    <option value="/uploads/23da25a9-9d2e-409e-863e-9be34cc6bc95.jpg">
+      Masala Dosa Photo
+    </option>
+    <option value="/uploads/711d2f81-1281-434c-9af8-6bdb33d964cd.jpg">
+      Gobi Manchurian Photo
+    </option>
+  </select>
+</div>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={foodAvailable}
+          onChange={(event) => setFoodAvailable(event.target.checked)}
+        />
+        Available for ordering
+      </label>
+
+      <div className="flex gap-2 sm:col-span-2">
+        <button
+          type="submit"
+          disabled={foodSaving}
+          className="rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+        >
+         {editingFoodId !== null
+  ? foodUpdating
+    ? "Updating..."
+    : "Update Food Item"
+  : foodSaving
+  ? "Saving..."
+  : "Save Food Item"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowFoodForm(false)}
+          className="rounded-lg bg-slate-200 px-4 py-2 font-semibold text-slate-700"
+        >
+          Cancel
+        </button>
+      </div>
+
+      {foodMessage && (
+        <p className="sm:col-span-2 text-sm text-red-600">
+          {foodMessage}
+        </p>
+      )}
+    </form>
+  </section>
+)}
 
         <div className="flex flex-wrap gap-2">
           {categories.map((item) => (
@@ -745,9 +1132,18 @@ useEffect(() => {
                 key={item.item_id}
                 className="rounded-2xl bg-white p-6 shadow-sm"
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-3xl">
-                  🍽️
-                </div>
+             {item.image_url ? (
+  <img
+    src={item.image_url}
+    alt={item.item_name}
+    className="h-44 w-full rounded-xl object-cover"
+    loading="lazy"
+  />
+) : (
+  <div className="flex h-44 w-full items-center justify-center rounded-xl bg-slate-100 text-5xl">
+    🍽️
+  </div>
+)}
 
                 <div className="mt-4 flex items-start justify-between gap-3">
                   <div>
@@ -777,19 +1173,48 @@ useEffect(() => {
                     {item.is_available ? "Available" : "Unavailable"}
                   </span>
 
-                  <button
-                    onClick={() => addToCart(item.item_id)}
-                    disabled={!item.is_available}
-                    className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  >
-                    Add to Cart
-                  </button>
+                  {userRole === "CUSTOMER" && (
+  <button
+    onClick={() => addToCart(item.item_id)}
+    disabled={!item.is_available}
+    className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+  >
+    Add to Cart
+  </button>
+)}
+{userRole === "ADMIN" && (
+  <div className="flex gap-2">
+    <button
+      onClick={() => {
+        setEditingFoodId(item.item_id);
+        setFoodName(item.item_name);
+        setFoodDescription(item.description || "");
+        setFoodPrice(String(item.price));
+        setFoodCategory(item.category_name);
+        setFoodAvailable(item.is_available);
+        setFoodMessage("");
+        setShowFoodForm(true);
+      }}
+      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+    >
+      Edit
+    </button>
+
+    <button
+      onClick={() => deleteFoodItem(item.item_id)}
+      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+    >
+      Delete
+    </button>
+  </div>
+)}
                 </div>
               </div>
             ))}
           </div>
         )}
 
+        {userRole === "CUSTOMER" && (
         <section className="rounded-2xl bg-white p-6 shadow-sm">
           <h3 className="text-xl font-bold">Your Cart</h3>
 
@@ -880,6 +1305,7 @@ useEffect(() => {
             </p>
           )}
         </section>
+        )}
       </div>
     );
   }
@@ -1401,37 +1827,40 @@ useEffect(() => {
             </p>
           </div>
 
-          <button
-            onClick={fetchFeedback}
-            disabled={feedbackLoading}
-            className="rounded-lg bg-slate-800 px-4 py-2 text-white disabled:opacity-50"
-          >
-            {feedbackLoading ? "Refreshing..." : "Refresh Feedback"}
-          </button>
+         {(userRole === "ADMIN" || userRole === "STAFF") && (
+  <button
+    onClick={fetchFeedback}
+    disabled={feedbackLoading}
+    className="rounded-lg bg-slate-800 px-4 py-2 text-white disabled:opacity-50"
+  >
+    {feedbackLoading ? "Refreshing..." : "Refresh Feedback"}
+  </button>
+)}
         </div>
 
-        {/* Feedback summary */}
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Total Reviews</p>
-            <h3 className="mt-2 text-3xl font-bold">{totalReviews}</h3>
-            <p className="mt-2 text-sm text-blue-600">
-              Customer reviews received
-            </p>
-          </div>
+       {/* Feedback summary: Admin and Staff only */}
+{(userRole === "ADMIN" || userRole === "STAFF") && (
+  <div className="grid gap-5 sm:grid-cols-2">
+    <div className="rounded-2xl bg-white p-6 shadow-sm">
+      <p className="text-sm text-slate-500">Total Reviews</p>
+      <h3 className="mt-2 text-3xl font-bold">{totalReviews}</h3>
+      <p className="mt-2 text-sm text-blue-600">
+        Customer reviews received
+      </p>
+    </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-500">Average Rating</p>
-            <h3 className="mt-2 text-3xl font-bold">
-              {averageRating.toFixed(1)} / 5
-            </h3>
-            <p className="mt-2 text-xl text-yellow-500">
-              {"★".repeat(Math.round(averageRating))}
-              {"☆".repeat(5 - Math.round(averageRating))}
-            </p>
-          </div>
-        </div>
-
+    <div className="rounded-2xl bg-white p-6 shadow-sm">
+      <p className="text-sm text-slate-500">Average Rating</p>
+      <h3 className="mt-2 text-3xl font-bold">
+        {averageRating.toFixed(1)} / 5
+      </h3>
+      <p className="mt-2 text-xl text-yellow-500">
+        {"★".repeat(Math.round(averageRating))}
+        {"☆".repeat(5 - Math.round(averageRating))}
+      </p>
+    </div>
+  </div>
+)}
         {/* Feedback form */}
         <section className="rounded-2xl bg-white p-6 shadow-sm">
           <h3 className="text-xl font-bold">Submit Your Feedback</h3>
@@ -1521,74 +1950,78 @@ useEffect(() => {
           )}
         </section>
 
-        {/* Customer reviews */}
-        <section className="rounded-2xl bg-white p-6 shadow-sm">
-          <h3 className="text-xl font-bold">Customer Reviews</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Reviews retrieved from the MongoDB customer_feedback collection.
-          </p>
+   {/* Customer reviews */}
+{(userRole === "ADMIN" || userRole === "STAFF") && (
+  <section className="rounded-2xl bg-white p-6 shadow-sm">
+    <h3 className="text-xl font-bold">Customer Reviews</h3>
 
-          {feedbackLoading ? (
-            <p className="mt-5 text-slate-500">Loading customer reviews...</p>
-          ) : feedbackError ? (
-            <div className="mt-5">
-              <p className="text-red-600">{feedbackError}</p>
-              <button
-                onClick={fetchFeedback}
-                className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
-              >
-                Retry
-              </button>
-            </div>
-          ) : feedbacks.length === 0 ? (
-            <p className="mt-5 text-slate-500">
-              No customer feedback available yet.
-            </p>
-          ) : (
-            <div className="mt-5 space-y-4">
-              {feedbacks.map((feedback) => (
-                <div
-                  key={feedback._id}
-                  className="rounded-xl border border-slate-200 p-5"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h4 className="font-bold">
-                        {feedback.customer_name}
-                      </h4>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Food: {feedback.food_item}
-                      </p>
-                    </div>
+    <p className="mt-1 text-sm text-slate-500">
+      Reviews retrieved from the MongoDB customer_feedback collection.
+    </p>
 
-                    <div className="text-right">
-                      <p className="text-lg text-yellow-500">
-                        {"★".repeat(feedback.rating)}
-                        {"☆".repeat(5 - feedback.rating)}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {feedback.rating} / 5
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="mt-4 text-sm text-slate-700">
-                    {feedback.comment}
-                  </p>
-
-                  {feedback.created_at && (
-                    <p className="mt-3 text-xs text-slate-400">
-                      {new Date(feedback.created_at).toLocaleString("en-IN")}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+    {feedbackLoading ? (
+      <p className="mt-5 text-slate-500">Loading customer reviews...</p>
+    ) : feedbackError ? (
+      <div className="mt-5">
+        <p className="text-red-600">{feedbackError}</p>
+        <button
+          onClick={fetchFeedback}
+          className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
+        >
+          Retry
+        </button>
       </div>
+    ) : feedbacks.length === 0 ? (
+      <p className="mt-5 text-slate-500">
+        No customer feedback available yet.
+      </p>
+    ) : (
+      <div className="mt-5 space-y-4">
+        {feedbacks.map((feedback) => (
+          <div
+            key={feedback._id}
+            className="rounded-xl border border-slate-200 p-5"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h4 className="font-bold">{feedback.customer_name}</h4>
+                <p className="mt-1 text-sm text-slate-500">
+                  Food: {feedback.food_item}
+                </p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-lg text-yellow-500">
+                  {"★".repeat(feedback.rating)}
+                  {"☆".repeat(5 - feedback.rating)}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {feedback.rating} / 5
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm text-slate-700">
+              {feedback.comment}
+            </p>
+
+            {feedback.created_at && (
+              <p className="mt-3 text-xs text-slate-400">
+                {new Date(feedback.created_at).toLocaleString("en-IN")}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+    </section>
+)}
+
+</div>
     );
-  }  // Add stock to inventory
+  }
+
+  // Add stock to inventory
   async function addStock() {
     if (stockSubmitting) return;
 
@@ -2010,16 +2443,16 @@ useEffect(() => {
                 Smart Canteen Management System
               </p>
             </div>
-
             <div className="flex items-center gap-3">
-              <span className="rounded-full bg-green-100 px-3 py-2 text-xs font-semibold text-green-700">
-                System Active
-              </span>
+  <span className="rounded-full bg-green-100 px-3 py-2 text-xs font-semibold text-green-700">
+    System Active
+  </span>
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 font-bold text-orange-700">
-                A
-              </div>
-            </div>
+  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 font-bold text-orange-700">
+    A
+  </div>
+</div>
+
           </header>
 
           <div className="p-5 md:p-8">
