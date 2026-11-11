@@ -1,4 +1,4 @@
-
+import clientPromise from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { requireRole } from "@/lib/authorization";

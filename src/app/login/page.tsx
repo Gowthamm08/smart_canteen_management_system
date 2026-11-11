@@ -9,6 +9,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -121,25 +122,47 @@ export default function LoginPage() {
           Password
         </label>
 
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          placeholder="Enter your password"
-          style={{
-            width: "100%",
-            boxSizing: "border-box",
-            padding: "14px",
-            marginBottom: "22px",
-            border: "1px solid #cbd5e1",
-            borderRadius: "8px",
-            fontSize: "15px",
-            color: "#111827",
-            backgroundColor: "#ffffff",
-            outlineColor: "#2563eb",
-          }}
-        />
+        <div style={{ position: "relative", marginBottom: "22px" }}>
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Enter your password"
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "14px 48px 14px 14px",
+              border: "1px solid #cbd5e1",
+              borderRadius: "8px",
+              fontSize: "15px",
+              color: "#111827",
+              backgroundColor: "#ffffff",
+              outlineColor: "#2563eb",
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              color: "#64748b",
+              fontSize: "20px",
+              padding: "4px",
+            }}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
 
         {error && (
           <p
@@ -174,12 +197,34 @@ export default function LoginPage() {
           {loading ? "Signing in..." : "Login"}
         </button>
 
+        {/* Sign Up option */}
+        <p
+          style={{
+            textAlign: "center",
+            color: "#64748b",
+            fontSize: "14px",
+            marginTop: "22px",
+          }}
+        >
+          Don't have an account?{" "}
+          <a
+            href="/signup"
+            style={{
+              color: "#2563eb",
+              fontWeight: "700",
+              textDecoration: "none",
+            }}
+          >
+            Sign Up
+          </a>
+        </p>
+
         <p
           style={{
             textAlign: "center",
             color: "#64748b",
             fontSize: "13px",
-            marginTop: "25px",
+            marginTop: "20px",
           }}
         >
           Smart Canteen Management System
