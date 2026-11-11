@@ -32,7 +32,8 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      // Redirect to the existing dashboard after login
+      router.replace("/dashboard");
       router.refresh();
     } catch {
       setError("Unable to connect to the server");
@@ -197,7 +198,6 @@ export default function LoginPage() {
           {loading ? "Signing in..." : "Login"}
         </button>
 
-        {/* Sign Up option */}
         <p
           style={{
             textAlign: "center",
