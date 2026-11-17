@@ -1,8 +1,15 @@
 
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import { requireRole } from "@/lib/authorization";
 
 export async function GET() {
+  const auth = await requireRole(["ADMIN"]);
+
+  if (!auth.authorized) {
+    return auth.response;
+  }
+
   try {
     const result = await pool.query(`
       SELECT

@@ -49,6 +49,27 @@ export async function POST(request: Request) {
       );
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const isPng = buffer.subarray(0, 8).equals(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    );
+    const isJpeg = buffer.length >= 3 &&
+      buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const isWebp = buffer.length >= 12 &&
+      buffer.toString("ascii", 0, 4) === "RIFF" &&
+      buffer.toString("ascii", 8, 12) === "WEBP";
+    const contentMatchesType =
+      (file.type === "image/png" && isPng) ||
+      (file.type === "image/jpeg" && isJpeg) ||
+      (file.type === "image/webp" && isWebp);
+
+    if (!contentMatchesType) {
+      return NextResponse.json(
+        { success: false, message: "The uploaded file does not match its image type." },
+        { status: 400 }
+      );
+    }
+
     const extension = allowedTypes[file.type];
     const filename = `${randomUUID()}${extension}`;
 
@@ -59,9 +80,6 @@ export async function POST(request: Request) {
     );
 
     await mkdir(uploadDirectory, { recursive: true });
-
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
 
     await writeFile(
       path.join(uploadDirectory, filename),

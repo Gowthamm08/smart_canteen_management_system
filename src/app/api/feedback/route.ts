@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { requireRole } from "@/lib/authorization";
 
-// GET: View all customer feedback (Admin and Staff only)
+// ADMIN and STAFF can view all feedback; CUSTOMERS can view their own feedback.
 export async function GET() {
-  const auth = await requireRole(["ADMIN", "STAFF"]);
+  const auth = await requireRole(["ADMIN", "STAFF", "CUSTOMER"]);
 
   if (!auth.authorized) {
     return auth.response;
@@ -20,8 +20,10 @@ export async function GET() {
 
     const collection = db.collection("customer_feedback");
 
+    const isCustomer = auth.user.role === "CUSTOMER";
+    const query = isCustomer ? { customer_id: auth.user.user_id } : {};
     const feedback = await collection
-      .find({})
+      .find(query)
       .sort({ _id: -1 })
       .toArray();
 
@@ -37,8 +39,12 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      totalReviews,
-      averageRating: Number(averageRating.toFixed(1)),
+      ...(isCustomer
+        ? {}
+        : {
+            totalReviews,
+            averageRating: Number(averageRating.toFixed(1)),
+          }),
       feedback,
     });
   } catch (error) {

@@ -16,7 +16,13 @@ export async function GET() {
     const summaryResult = await pool.query(`
       SELECT
         COUNT(*)::INTEGER AS total_orders,
-        COALESCE(SUM(total_amount), 0) AS total_revenue,
+        COALESCE((
+          SELECT SUM(p.amount)
+          FROM payments p
+          INNER JOIN orders paid_order ON paid_order.order_id = p.order_id
+          WHERE p.payment_status = 'SUCCESS'
+            AND paid_order.order_status <> 'CANCELLED'
+        ), 0) AS total_revenue,
         COUNT(*) FILTER (
           WHERE order_status = 'COMPLETED'
         )::INTEGER AS completed_orders,
@@ -31,11 +37,12 @@ export async function GET() {
       SELECT
         DATE(order_date) AS sale_date,
         COUNT(*)::INTEGER AS total_orders,
-        COALESCE(SUM(total_amount), 0) AS total_revenue
-      FROM orders
+        COALESCE(SUM(p.amount) FILTER (WHERE p.payment_status = 'SUCCESS' AND o.order_status <> 'CANCELLED'), 0) AS total_revenue
+      FROM orders o
+      LEFT JOIN payments p ON p.order_id = o.order_id
       WHERE order_status <> 'CANCELLED'
         AND order_date >= CURRENT_DATE - INTERVAL '6 days'
-      GROUP BY DATE(order_date)
+      GROUP BY DATE(o.order_date)
       ORDER BY sale_date;
     `);
 
@@ -50,7 +57,9 @@ export async function GET() {
         ON oi.item_id = m.item_id
       INNER JOIN orders o
         ON oi.order_id = o.order_id
+      INNER JOIN payments p ON p.order_id = o.order_id
       WHERE o.order_status <> 'CANCELLED'
+        AND p.payment_status = 'SUCCESS'
       GROUP BY m.item_id, m.item_name
       ORDER BY total_quantity DESC
       LIMIT 5;

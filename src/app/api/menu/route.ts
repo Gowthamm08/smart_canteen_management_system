@@ -64,11 +64,25 @@ export async function POST(request: Request) {
       !Number.isFinite(Number(price)) ||
       Number(price) <= 0 ||
       !Number.isInteger(Number(category_id)) ||
+      Number(category_id) <= 0 ||
       typeof is_available !== "boolean" ||
+      (description !== undefined && description !== null && typeof description !== "string") ||
       (image_url !== null && typeof image_url !== "string")
     ) {
       return NextResponse.json(
         { success: false, message: "Invalid food item details" },
+        { status: 400 }
+      );
+    }
+
+    const category = await pool.query(
+      "SELECT 1 FROM categories WHERE category_id = $1",
+      [Number(category_id)]
+    );
+
+    if (category.rowCount === 0) {
+      return NextResponse.json(
+        { success: false, message: "Selected category was not found." },
         { status: 400 }
       );
     }
@@ -132,13 +146,27 @@ export async function PATCH(request: Request) {
       !Number.isFinite(Number(price)) ||
       Number(price) <= 0 ||
       !Number.isInteger(Number(category_id)) ||
+      Number(category_id) <= 0 ||
       typeof is_available !== "boolean" ||
+      (description !== undefined && description !== null && typeof description !== "string") ||
       (image_url !== undefined &&
         image_url !== null &&
         typeof image_url !== "string")
     ) {
       return NextResponse.json(
         { success: false, message: "Invalid food item details" },
+        { status: 400 }
+      );
+    }
+
+    const category = await pool.query(
+      "SELECT 1 FROM categories WHERE category_id = $1",
+      [Number(category_id)]
+    );
+
+    if (category.rowCount === 0) {
+      return NextResponse.json(
+        { success: false, message: "Selected category was not found." },
         { status: 400 }
       );
     }

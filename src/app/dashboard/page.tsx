@@ -15,16 +15,51 @@ type MenuItem = {
   image_url: string | null;
 };
 
+type Category = {
+  category_id: number;
+  category_name: string;
+  description: string | null;
+};
+
 type Order = {
   order_id: number;
   customer_name: string;
   order_date: string;
   total_amount: string | number;
   order_status: string;
+  payment_method: "CASH" | "UPI" | "CARD" | null;
+  payment_status: "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED" | null;
+  payment_date: string | null;
   items: {
     item_name: string;
     quantity: number;
   }[];
+};
+
+type Payment = {
+  payment_id: number;
+  order_id: number;
+  amount: string | number;
+  payment_method: "CASH" | "UPI" | "CARD";
+  payment_status: "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
+  payment_date: string;
+  order_status: string;
+  customer_name: string | null;
+};
+
+type OrderActivity = {
+  status: string;
+  description: string;
+  activity_date: string;
+};
+
+const nextOrderStatuses: Record<string, string[]> = {
+  PENDING: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["PREPARING", "CANCELLED"],
+  PREPARING: ["READY", "CANCELLED"],
+  READY: ["COMPLETED"],
+  COMPLETED: [],
+  CANCELLED: [],
 };
 
 type InventoryItem = {
@@ -35,6 +70,15 @@ type InventoryItem = {
   minimum_stock: string | number;
   last_updated: string;
   supplier_name: string | null;
+};
+
+type Supplier = {
+  supplier_id: number;
+  supplier_name: string;
+  contact_person: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
 };
 
 type InventoryTransaction = {
@@ -83,6 +127,20 @@ type Feedback = {
   created_at?: string;
 };
 
+type AdminDashboardStats = {
+  today_orders: number;
+  today_revenue: string | number;
+  total_menu_items: number;
+  low_stock_items: number;
+};
+
+type CustomerDashboardStats = {
+  total_orders: number;
+  total_spending: string | number;
+  completed_orders: number;
+  available_menu_items: number;
+};
+
 export default function Home() {
   const router = useRouter();
   const [userRole, setUserRole] = useState<
@@ -120,6 +178,12 @@ export default function Home() {
 } | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryDescription, setCategoryDescription] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [categoryMessage, setCategoryMessage] = useState("");
+  const [categorySubmitting, setCategorySubmitting] = useState(false);
   const [menuLoading, setMenuLoading] = useState(true);
   const [menuError, setMenuError] = useState("");
   // Admin food management states
@@ -142,10 +206,52 @@ const [foodUpdating, setFoodUpdating] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState("");
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [paymentsError, setPaymentsError] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
+  const [paymentSummary, setPaymentSummary] = useState<{
+    total_revenue: string | number;
+    successful_payments: number;
+    pending_payments: number;
+    failed_payments: number;
+  } | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "UPI">("CASH");
+  const [simulationOutcome, setSimulationOutcome] = useState<"SUCCESS" | "FAILED">("SUCCESS");
+  const [orderUpdatingId, setOrderUpdatingId] = useState<number | null>(null);
+  const [orderUpdateMessage, setOrderUpdateMessage] = useState("");
+  const [orderUpdateSuccess, setOrderUpdateSuccess] = useState(false);
+  const [orderActivity, setOrderActivity] = useState<{ orderId: number; entries: OrderActivity[] } | null>(null);
+  const [orderActivityLoading, setOrderActivityLoading] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState<AdminDashboardStats | CustomerDashboardStats | null>(null);
+  const [dashboardStatsLoading, setDashboardStatsLoading] = useState(true);
+  const [dashboardStatsError, setDashboardStatsError] = useState("");
 
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [inventoryError, setInventoryError] = useState("");
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliersLoading, setSuppliersLoading] = useState(true);
+  const [suppliersError, setSuppliersError] = useState("");
+  const [showInventoryForm, setShowInventoryForm] = useState(false);
+  const [inventoryName, setInventoryName] = useState("");
+  const [inventoryUnit, setInventoryUnit] = useState("");
+  const [inventoryInitialQuantity, setInventoryInitialQuantity] = useState("0");
+  const [inventoryMinimumStock, setInventoryMinimumStock] = useState("5");
+  const [inventorySupplierId, setInventorySupplierId] = useState("");
+  const [inventoryCreateMessage, setInventoryCreateMessage] = useState("");
+  const [inventoryCreating, setInventoryCreating] = useState(false);
+  const [supplierName, setSupplierName] = useState("");
+  const [supplierContact, setSupplierContact] = useState("");
+  const [supplierPhone, setSupplierPhone] = useState("");
+  const [supplierEmail, setSupplierEmail] = useState("");
+  const [supplierAddress, setSupplierAddress] = useState("");
+  const [editingSupplierId, setEditingSupplierId] = useState<number | null>(null);
+  const [supplierMessage, setSupplierMessage] = useState("");
+  const [supplierSubmitting, setSupplierSubmitting] = useState(false);
+  const [showSupplierForm, setShowSupplierForm] = useState(false);
 
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
@@ -188,8 +294,6 @@ const [foodUpdating, setFoodUpdating] = useState(false);
   const [removeSubmitting, setRemoveSubmitting] = useState(false);
   const [removeSuccess, setRemoveSuccess] = useState(false);
 
-  const categories = ["All", "Breakfast", "Lunch", "Snacks", "Drinks"];
-
   // Fetch menu items
   async function fetchMenu() {
     try {
@@ -209,6 +313,70 @@ const [foodUpdating, setFoodUpdating] = useState(false);
       setMenuError("Unable to load food items. Please try again.");
     } finally {
       setMenuLoading(false);
+    }
+  }
+
+  async function fetchCategories() {
+    try {
+      const response = await fetch("/api/categories");
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to load categories.");
+      }
+      setCategories(data.categories);
+      setFoodCategory((current) =>
+        data.categories.some((item: Category) => item.category_name === current)
+          ? current
+          : data.categories[0]?.category_name || ""
+      );
+    } catch (error) {
+      console.error("Category loading error:", error);
+      setCategoryMessage("Unable to load categories. Please try again.");
+    }
+  }
+
+  async function saveCategory() {
+    if (categorySubmitting) return;
+    setCategorySubmitting(true);
+    setCategoryMessage("");
+    try {
+      const response = await fetch("/api/categories", {
+        method: editingCategoryId === null ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(editingCategoryId === null ? {} : { category_id: editingCategoryId }),
+          category_name: categoryName,
+          description: categoryDescription,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to save category.");
+      setCategoryMessage(data.message);
+      setCategoryName("");
+      setCategoryDescription("");
+      setEditingCategoryId(null);
+      await Promise.all([fetchCategories(), fetchMenu()]);
+    } catch (error) {
+      setCategoryMessage(error instanceof Error ? error.message : "Unable to save category.");
+    } finally {
+      setCategorySubmitting(false);
+    }
+  }
+
+  async function deleteCategory(categoryId: number, name: string) {
+    if (!window.confirm(`Delete the “${name}” category? Categories used by menu items cannot be removed.`)) return;
+    try {
+      const response = await fetch("/api/categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: categoryId }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to delete category.");
+      setCategoryMessage(data.message);
+      await Promise.all([fetchCategories(), fetchMenu()]);
+    } catch (error) {
+      setCategoryMessage(error instanceof Error ? error.message : "Unable to delete category.");
     }
   }
   // Upload selected food photo
@@ -248,12 +416,7 @@ async function saveFoodItem() {
         description: foodDescription.trim(),
         price: Number(foodPrice),
        image_url: existingFoodImage || uploadedImageUrl,
-        category_id: {
-          Breakfast: 1,
-          Lunch: 2,
-          Snacks: 3,
-          Drinks: 4,
-        }[foodCategory],
+        category_id: categories.find((item) => item.category_name === foodCategory)?.category_id,
         is_available: foodAvailable,
       }),
     });
@@ -268,7 +431,7 @@ async function saveFoodItem() {
     setFoodName("");
     setFoodDescription("");
     setFoodPrice("");
-    setFoodCategory("Breakfast");
+    setFoodCategory(categories[0]?.category_name || "");
     setFoodAvailable(true);
     setFoodImage(null);
     setExistingFoodImage("");
@@ -304,12 +467,7 @@ async function updateFoodItem() {
         description: foodDescription.trim(),
         price: Number(foodPrice),
         image_url: existingFoodImage || uploadedImageUrl,
-        category_id: {
-          Breakfast: 1,
-          Lunch: 2,
-          Snacks: 3,
-          Drinks: 4,
-        }[foodCategory],
+        category_id: categories.find((item) => item.category_name === foodCategory)?.category_id,
         is_available: foodAvailable,
       }),
     });
@@ -394,6 +552,120 @@ async function deleteFoodItem(itemId: number) {
     }
   }
 
+  async function fetchPayments(roleOverride = userRole) {
+    try {
+      setPaymentsLoading(true);
+      setPaymentsError("");
+      const query = new URLSearchParams();
+      if (roleOverride === "ADMIN" && paymentStatusFilter) query.set("status", paymentStatusFilter);
+      if (roleOverride === "ADMIN" && paymentMethodFilter) query.set("method", paymentMethodFilter);
+      const response = await fetch(`/api/payments${query.size ? `?${query.toString()}` : ""}`);
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to load payment history.");
+      setPayments(data.payments || []);
+      setPaymentSummary(data.summary || null);
+    } catch (error) {
+      setPaymentsError(error instanceof Error ? error.message : "Unable to load payment history.");
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }
+
+  async function showPaymentDetails(paymentId: number) {
+    try {
+      const response = await fetch(`/api/payments/${paymentId}`);
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to load payment details.");
+      setSelectedPayment(data.payment);
+    } catch (error) {
+      setPaymentsError(error instanceof Error ? error.message : "Unable to load payment details.");
+    }
+  }
+
+  async function markCashCollected(paymentId: number) {
+    try {
+      const response = await fetch("/api/payments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_id: paymentId }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to record cash collection.");
+      await Promise.all([fetchPayments(), fetchOrders()]);
+    } catch (error) {
+      setPaymentsError(error instanceof Error ? error.message : "Unable to record cash collection.");
+    }
+  }
+
+  async function retryFailedPayment(orderId: number) {
+    try {
+      const response = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: orderId, payment_method: "UPI", simulation_outcome: "SUCCESS" }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to retry simulated payment.");
+      await Promise.all([fetchPayments(), fetchOrders(), fetchDashboardStats()]);
+    } catch (error) {
+      setPaymentsError(error instanceof Error ? error.message : "Unable to retry simulated payment.");
+    }
+  }
+
+  async function fetchDashboardStats() {
+    try {
+      setDashboardStatsLoading(true);
+      setDashboardStatsError("");
+      const response = await fetch("/api/dashboard/stats");
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to load dashboard statistics.");
+      }
+      setDashboardStats(data.stats);
+    } catch (error) {
+      setDashboardStatsError(error instanceof Error ? error.message : "Unable to load dashboard statistics.");
+    } finally {
+      setDashboardStatsLoading(false);
+    }
+  }
+
+  async function updateOrderStatus(orderId: number, orderStatus: string) {
+    setOrderUpdatingId(orderId);
+    setOrderUpdateMessage("");
+    setOrderUpdateSuccess(false);
+    try {
+      const response = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: orderId, order_status: orderStatus }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to update order status.");
+      setOrderUpdateSuccess(true);
+      setOrderUpdateMessage(`Order #${orderId} moved to ${orderStatus}.`);
+      await fetchOrders();
+    } catch (error) {
+      setOrderUpdateMessage(error instanceof Error ? error.message : "Unable to update order status.");
+    } finally {
+      setOrderUpdatingId(null);
+    }
+  }
+
+  async function viewOrderActivity(orderId: number) {
+    setOrderActivityLoading(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/activity`);
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to load order activity.");
+      setOrderActivity({ orderId, entries: data.activities || [] });
+    } catch (error) {
+      setOrderUpdateMessage(error instanceof Error ? error.message : "Unable to load order activity.");
+      setOrderUpdateSuccess(false);
+    } finally {
+      setOrderActivityLoading(false);
+    }
+  }
+
   // Fetch inventory
   async function fetchInventory() {
     try {
@@ -426,6 +698,109 @@ async function deleteFoodItem(itemId: number) {
       setInventoryError("Unable to load inventory. Please try again.");
     } finally {
       setInventoryLoading(false);
+    }
+  }
+
+  async function fetchSuppliers() {
+    try {
+      setSuppliersLoading(true);
+      setSuppliersError("");
+      const response = await fetch("/api/suppliers");
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to load suppliers.");
+      setSuppliers(data.suppliers);
+    } catch (error) {
+      console.error("Supplier loading error:", error);
+      setSuppliersError("Unable to load suppliers. Please try again.");
+    } finally {
+      setSuppliersLoading(false);
+    }
+  }
+
+  async function saveSupplier() {
+    if (supplierSubmitting) return;
+    setSupplierSubmitting(true);
+    setSupplierMessage("");
+    try {
+      const response = await fetch("/api/suppliers", {
+        method: editingSupplierId === null ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(editingSupplierId === null ? {} : { supplier_id: editingSupplierId }),
+          supplier_name: supplierName,
+          contact_person: supplierContact,
+          phone: supplierPhone,
+          email: supplierEmail,
+          address: supplierAddress,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to save supplier.");
+      setSupplierMessage(data.message);
+      setSupplierName("");
+      setSupplierContact("");
+      setSupplierPhone("");
+      setSupplierEmail("");
+      setSupplierAddress("");
+      setEditingSupplierId(null);
+      await fetchSuppliers();
+      await fetchInventory();
+    } catch (error) {
+      setSupplierMessage(error instanceof Error ? error.message : "Unable to save supplier.");
+    } finally {
+      setSupplierSubmitting(false);
+    }
+  }
+
+  async function deleteSupplier(supplierId: number, name: string) {
+    if (!window.confirm(`Delete supplier “${name}”? Suppliers linked to inventory cannot be removed.`)) return;
+    try {
+      const response = await fetch("/api/suppliers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supplier_id: supplierId }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to delete supplier.");
+      setSupplierMessage(data.message);
+      await fetchSuppliers();
+    } catch (error) {
+      setSupplierMessage(error instanceof Error ? error.message : "Unable to delete supplier.");
+    }
+  }
+
+  async function createInventoryItem(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (inventoryCreating) return;
+    setInventoryCreating(true);
+    setInventoryCreateMessage("");
+    try {
+      const response = await fetch("/api/inventory/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ingredient_name: inventoryName,
+          unit: inventoryUnit,
+          quantity: inventoryInitialQuantity,
+          minimum_stock: inventoryMinimumStock,
+          supplier_id: inventorySupplierId || null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Unable to create inventory item.");
+      setInventoryCreateMessage(data.message);
+      setInventoryName("");
+      setInventoryUnit("");
+      setInventoryInitialQuantity("0");
+      setInventoryMinimumStock("5");
+      setInventorySupplierId("");
+      setSelectedInventoryId(String(data.inventory.inventory_id));
+      setShowInventoryForm(false);
+      await Promise.all([fetchInventory(), fetchTransactions(), fetchReports()]);
+    } catch (error) {
+      setInventoryCreateMessage(error instanceof Error ? error.message : "Unable to create inventory item.");
+    } finally {
+      setInventoryCreating(false);
     }
   }
 
@@ -563,10 +938,7 @@ async function deleteFoodItem(itemId: number) {
     setFeedbackRating("5");
     setFeedbackComment("");
 
-    // Only Admin and Staff can retrieve all customer reviews.
-    if (userRole === "ADMIN" || userRole === "STAFF") {
-      await fetchFeedback();
-    }
+    await fetchFeedback();
 
   } catch (error) {
     console.error("Feedback submission error:", error);
@@ -599,22 +971,33 @@ useEffect(() => {
 
       await Promise.all([
         fetchMenu(),
+        fetchCategories(),
         fetchOrders(),
+        ...(role === "ADMIN" || role === "CUSTOMER" ? [fetchDashboardStats()] : []),
       ]);
+      if (role === "STAFF") setDashboardStatsLoading(false);
 
       if (role === "ADMIN") {
         await Promise.all([
           fetchInventory(),
           fetchTransactions(),
+          fetchSuppliers(),
         ]);
       } else {
         setInventoryLoading(false);
         setTransactionsLoading(false);
+        setSuppliersLoading(false);
       }
 
-      if (role === "ADMIN" || role === "STAFF") {
+      if (role === "ADMIN" || role === "CUSTOMER") {
+        await fetchPayments(role);
+      } else {
+        setPaymentsLoading(false);
+      }
+
+      if (role === "ADMIN" || role === "STAFF" || role === "CUSTOMER") {
         await Promise.all([
-          fetchReports(),
+          ...(role === "ADMIN" || role === "STAFF" ? [fetchReports()] : []),
           fetchFeedback(),
         ]);
       } else {
@@ -628,6 +1011,10 @@ useEffect(() => {
 
   loadDashboard();
 }, []);
+
+useEffect(() => {
+  if (userRole === "ADMIN") void fetchPayments("ADMIN");
+}, [userRole, paymentStatusFilter, paymentMethodFilter]);
   // Filter menu by category
   const filteredItems =
     category === "All"
@@ -635,6 +1022,7 @@ useEffect(() => {
       : menuItems.filter(
           (item) => item.category_name === category
         );
+  const categoryFilters = ["All", ...categories.map((item) => item.category_name)];
 
   // Calculate cart total
   const total = cart.reduce((sum, id) => {
@@ -693,12 +1081,31 @@ useEffect(() => {
         throw new Error(data.message || "Unable to place order");
       }
 
-      setOrderSuccess(true);
-      setOrderMessage("Order placed successfully!");
       setCart([]);
+      const paymentResponse = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_id: data.order_id,
+          payment_method: paymentMethod,
+          ...(paymentMethod === "UPI" ? { simulation_outcome: simulationOutcome } : {}),
+        }),
+      });
+      const paymentData = await paymentResponse.json();
+      if (!paymentResponse.ok || !paymentData.success) {
+        setOrderSuccess(false);
+        setOrderMessage(`Order #${data.order_id} was placed, but payment was not recorded: ${paymentData.message || "Please check My Payments."}`);
+      } else if (paymentData.payment.payment_status === "FAILED") {
+        setOrderSuccess(false);
+        setOrderMessage(`Order #${data.order_id} was placed. Simulated payment failed; no real money was charged. You can retry from My Payments.`);
+      } else {
+        setOrderSuccess(true);
+        setOrderMessage(paymentData.message);
+      }
       await Promise.all([
         fetchOrders(),
-        fetchReports(),
+        fetchPayments("CUSTOMER"),
+        fetchDashboardStats(),
       ]);
     } catch (error) {
       console.error("Order placement error:", error);
@@ -712,22 +1119,6 @@ useEffect(() => {
       setPlacingOrder(false);
     }
   }
-    // Calculate today's orders
-  const todayOrders = orders.filter((order) => {
-    return (
-      new Date(order.order_date).toDateString() ===
-      new Date().toDateString()
-    );
-  });
-
-  // Calculate today's revenue
-  const todayRevenue = todayOrders
-    .filter((order) => order.order_status !== "CANCELLED")
-    .reduce(
-      (total, order) => total + Number(order.total_amount),
-      0
-    );
-
   // Identify low-stock ingredients
   const lowStockItems: InventoryItem[] = inventoryItems.filter(
     (item: InventoryItem) =>
@@ -737,6 +1128,16 @@ useEffect(() => {
    
  
 function renderOverview() {
+  const customerStats = userRole === "CUSTOMER"
+    ? dashboardStats as CustomerDashboardStats | null
+    : null;
+  const adminStats = userRole === "ADMIN"
+    ? dashboardStats as AdminDashboardStats | null
+    : null;
+  const visibleMenuCount = userRole === "CUSTOMER"
+    ? customerStats?.available_menu_items
+    : adminStats?.total_menu_items ?? menuItems.length;
+
   return (
     <div className="space-y-7">
 
@@ -749,66 +1150,51 @@ function renderOverview() {
           Welcome back, {currentUser?.full_name?.split(" ")[0] || "User"}!
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Here's what's happening in your canteen today.
+          {userRole === "CUSTOMER" ? "Your orders, spending and menu at a glance." : "Here's what's happening in your canteen today."}
         </p>
       </section>
 
       {/* Statistics */}
+      {dashboardStatsError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{dashboardStatsError}</p>}
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500">Today's Orders</p>
-            <span className="rounded-xl bg-blue-50 p-3 text-xl">📦</span>
-          </div>
-          <h3 className="mt-5 text-3xl font-bold text-slate-900">
-            {todayOrders.length}
-          </h3>
-          <p className="mt-2 text-xs text-slate-400">Orders received today</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500">Today's Revenue</p>
-            <span className="rounded-xl bg-emerald-50 p-3 text-xl">💰</span>
-          </div>
-          <h3 className="mt-5 text-3xl font-bold text-slate-900">
-            ₹{todayRevenue.toFixed(2)}
-          </h3>
-          <p className="mt-2 text-xs text-slate-400">Sales excluding cancelled orders</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500">Menu Items</p>
-            <span className="rounded-xl bg-[#F8F3E8] p-3 text-xl">🍽️</span>
-          </div>
-          <h3 className="mt-5 text-3xl font-bold text-slate-900">
-            {menuItems.length}
-          </h3>
-          <p className="mt-2 text-xs text-slate-400">Items in the food menu</p>
-        </div>
-
-        {userRole === "ADMIN" && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        {(userRole === "ADMIN"
+          ? [
+              { label: "Today's Orders", value: adminStats?.today_orders, detail: "Orders from all customers", icon: "📦" },
+              { label: "Today's Revenue", value: adminStats ? `₹${Number(adminStats.today_revenue).toFixed(2)}` : undefined, detail: "Excludes cancelled orders", icon: "◈" },
+              { label: "Total Menu Items", value: adminStats?.total_menu_items, detail: "Items across the menu", icon: "🍽️" },
+              { label: "Inventory Status", value: adminStats?.low_stock_items, detail: "Items at or below minimum stock", icon: "⚠️" },
+            ]
+          : userRole === "CUSTOMER"
+            ? [
+                { label: "My Total Orders", value: customerStats?.total_orders, detail: "All orders on your account", icon: "📦" },
+                { label: "My Total Spending", value: customerStats ? `₹${Number(customerStats.total_spending).toFixed(2)}` : undefined, detail: "Completed orders only", icon: "◈" },
+                { label: "Available Menu Items", value: visibleMenuCount, detail: "Currently available to order", icon: "🍽️" },
+                { label: "My Completed Orders", value: customerStats?.completed_orders, detail: "Orders completed", icon: "✓" },
+              ]
+            : [
+                { label: "Orders", value: orders.length, detail: "Orders available to staff", icon: "📦" },
+                { label: "Menu Items", value: menuItems.length, detail: "Items across the menu", icon: "🍽️" },
+              ]
+        ).map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-500">Low Stock Items</p>
-              <span className="rounded-xl bg-red-50 p-3 text-xl">⚠️</span>
+              <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+              <span aria-hidden="true" className="rounded-xl bg-[#F8F3E8] p-3 text-xl text-[#9B7A43]">{stat.icon}</span>
             </div>
             <h3 className="mt-5 text-3xl font-bold text-slate-900">
-              {lowStockItems.length}
+              {dashboardStatsLoading && userRole !== "STAFF" ? "…" : stat.value ?? "—"}
             </h3>
-            <p className="mt-2 text-xs text-slate-400">Ingredients needing attention</p>
+            <p className="mt-2 text-xs text-slate-400">{stat.detail}</p>
           </div>
-        )}
+        ))}
       </section>
 
       {/* Recent Orders */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Recent Orders</h3>
-            <p className="mt-1 text-xs text-slate-400">Latest customer orders</p>
+            <h3 className="text-lg font-bold text-slate-900">{userRole === "CUSTOMER" ? "My Recent Orders" : "Recent Orders"}</h3>
+            <p className="mt-1 text-xs text-slate-400">{userRole === "CUSTOMER" ? "Your latest orders" : "Latest customer orders"}</p>
           </div>
           <button
             onClick={() => setActiveTab("Orders")}
@@ -821,6 +1207,21 @@ function renderOverview() {
           {renderOrdersTable()}
         </div>
       </section>
+
+      {(userRole === "ADMIN" || userRole === "CUSTOMER") && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">{userRole === "CUSTOMER" ? "My Payment History" : "Payment Summary"}</h3>
+              <p className="mt-1 text-xs text-slate-400">{userRole === "CUSTOMER" ? "Your latest payment records" : "Revenue includes successful, non-cancelled payments only"}</p>
+            </div>
+            <button onClick={() => setActiveTab("Payments")} className="rounded-xl bg-[#F8F3E8] px-4 py-2 text-sm font-semibold text-[#9B7A43]">{userRole === "CUSTOMER" ? "View My Payments →" : "Manage Payments →"}</button>
+          </div>
+          {userRole === "ADMIN" ? (
+            paymentSummary ? <div className="mt-4 grid gap-3 sm:grid-cols-3"><p className="rounded-xl bg-[#FAF8F2] p-4 text-sm text-slate-600">Paid revenue <strong className="block text-xl text-slate-900">₹{Number(paymentSummary.total_revenue).toFixed(2)}</strong></p><p className="rounded-xl bg-[#FAF8F2] p-4 text-sm text-slate-600">Successful payments <strong className="block text-xl text-slate-900">{paymentSummary.successful_payments}</strong></p><p className="rounded-xl bg-[#FAF8F2] p-4 text-sm text-slate-600">Pending payments <strong className="block text-xl text-slate-900">{paymentSummary.pending_payments}</strong></p></div> : <p className="mt-4 text-sm text-slate-500">Payment summary is loading…</p>
+          ) : paymentsLoading ? <p className="mt-4 text-sm text-slate-500">Loading your payment history…</p> : payments.slice(0, 3).length ? <div className="mt-4 divide-y divide-slate-100">{payments.slice(0, 3).map((payment) => <div key={payment.payment_id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><span>Order #{payment.order_id} · {payment.payment_method === "CASH" ? "Cash on Delivery" : `${payment.payment_method} demo`}</span><span className="font-semibold">₹{Number(payment.amount).toFixed(2)} · {payment.payment_status}</span></div>)}</div> : <p className="mt-4 text-sm text-slate-500">You have no payment records yet.</p>}
+        </section>
+      )}
 
       {/* Low Stock Alerts */}
       {userRole === "ADMIN" && (
@@ -1008,10 +1409,11 @@ onSubmit={(event) => {
           onChange={(event) => setFoodCategory(event.target.value)}
           className="w-full rounded-lg border border-slate-300 px-3 py-2"
         >
-          <option value="Breakfast">Breakfast</option>
-          <option value="Lunch">Lunch</option>
-          <option value="Snacks">Snacks</option>
-          <option value="Drinks">Drinks</option>
+          {categories.map((item) => (
+            <option key={item.category_id} value={item.category_name}>
+              {item.category_name}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -1052,7 +1454,6 @@ onSubmit={(event) => {
     onChange={(event) => {
       setExistingFoodImage(event.target.value);
       setFoodImage(null);
-      setExistingFoodImage("");
 
     }}
     className="w-full rounded-lg border border-slate-300 px-3 py-2"
@@ -1109,7 +1510,7 @@ onSubmit={(event) => {
 )}
 
         <div className="flex flex-wrap gap-2">
-          {categories.map((item) => (
+          {categoryFilters.map((item) => (
             <button
               key={item}
               onClick={() => setCategory(item)}
@@ -1296,6 +1697,26 @@ onSubmit={(event) => {
                 })}
               </div>
 
+              <div className="mt-5 grid gap-4 rounded-xl border border-[#E9DFC9] bg-[#FAF8F2] p-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="checkout-payment-method" className="mb-2 block text-sm font-semibold">Payment method</label>
+                  <select id="checkout-payment-method" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as "CASH" | "UPI")} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                    <option value="CASH">Cash on Delivery</option>
+                    <option value="UPI">Simulated online payment (demo)</option>
+                  </select>
+                </div>
+                {paymentMethod === "UPI" && (
+                  <div>
+                    <label htmlFor="simulation-outcome" className="mb-2 block text-sm font-semibold">Demo simulation result</label>
+                    <select id="simulation-outcome" value={simulationOutcome} onChange={(event) => setSimulationOutcome(event.target.value as "SUCCESS" | "FAILED")} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                      <option value="SUCCESS">Simulate approved payment</option>
+                      <option value="FAILED">Simulate declined payment</option>
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500">Demo only. No real payment gateway or money is used.</p>
+                  </div>
+                )}
+              </div>
+
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xl font-bold">
                   Total: ₹{total.toFixed(2)}
@@ -1315,7 +1736,7 @@ onSubmit={(event) => {
           {orderMessage && (
             <p
               className={`mt-4 text-sm font-semibold ${
-                orderSuccess ? "text-green-600" : "text-red-600"
+                orderSuccess ? "text-green-700" : "text-red-600"
               }`}
             >
               {orderMessage}
@@ -1323,6 +1744,58 @@ onSubmit={(event) => {
           )}
         </section>
         )}
+      </div>
+    );
+  }
+
+  function renderCategories() {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold">Menu Categories</h2>
+          <p className="mt-1 text-slate-500">Organize the menu while preserving category links used by food items.</p>
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(280px,.75fr)_minmax(0,1.25fr)]">
+          <section className="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-bold">{editingCategoryId === null ? "Add category" : "Edit category"}</h3>
+            <form className="mt-4 space-y-4" onSubmit={(event) => { event.preventDefault(); void saveCategory(); }}>
+              <div>
+                <label htmlFor="category-name" className="mb-1 block text-sm font-semibold">Category name</label>
+                <input id="category-name" value={categoryName} maxLength={50} onChange={(event) => setCategoryName(event.target.value)} required className="w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </div>
+              <div>
+                <label htmlFor="category-description" className="mb-1 block text-sm font-semibold">Description</label>
+                <textarea id="category-description" value={categoryDescription} onChange={(event) => setCategoryDescription(event.target.value)} rows={3} className="w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" disabled={categorySubmitting} className="rounded-lg bg-[#C2A36B] px-4 py-2 font-semibold text-[#0B211C] disabled:opacity-50">{categorySubmitting ? "Saving…" : editingCategoryId === null ? "Add category" : "Save changes"}</button>
+                {editingCategoryId !== null && <button type="button" onClick={() => { setEditingCategoryId(null); setCategoryName(""); setCategoryDescription(""); }} className="rounded-lg bg-slate-100 px-4 py-2 font-semibold text-slate-700">Cancel edit</button>}
+              </div>
+              {categoryMessage && <p role="status" className="text-sm text-slate-600">{categoryMessage}</p>}
+            </form>
+          </section>
+
+          <section className="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-bold">Categories</h3>
+            {categories.length === 0 ? <p className="mt-4 text-sm text-slate-500">No categories found.</p> : (
+              <div className="mt-4 divide-y divide-slate-100">
+                {categories.map((item) => (
+                  <div key={item.category_id} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0">
+                    <div className="min-w-0">
+                      <p className="font-semibold">{item.category_name}</p>
+                      <p className="mt-1 text-sm text-slate-500">{item.description || "No description"}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => { setEditingCategoryId(item.category_id); setCategoryName(item.category_name); setCategoryDescription(item.description || ""); setCategoryMessage(""); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold hover:border-[#C2A36B]">Edit</button>
+                      <button type="button" onClick={() => void deleteCategory(item.category_id, item.category_name)} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     );
   }
@@ -1349,9 +1822,63 @@ onSubmit={(event) => {
         </div>
 
         <section className="rounded-2xl bg-white p-6 shadow-sm">
+          {orderUpdateMessage && (
+            <p role={orderUpdateSuccess ? "status" : "alert"} className={`mb-4 text-sm font-medium ${orderUpdateSuccess ? "text-emerald-700" : "text-red-700"}`}>
+              {orderUpdateMessage}
+            </p>
+          )}
           {renderOrdersTable()}
         </section>
+        {orderActivity && (
+          <section className="rounded-2xl border border-[#E9DFC9] bg-white p-5">
+            <div className="flex items-center justify-between"><h3 className="text-lg font-bold">Order #{orderActivity.orderId} activity</h3><button onClick={() => setOrderActivity(null)} className="text-sm font-semibold text-[#806333]">Close</button></div>
+            {orderActivityLoading ? <p className="mt-4 text-sm text-slate-500">Loading activity…</p> : orderActivity.entries.length === 0 ? <p className="mt-4 text-sm text-slate-500">No activity has been recorded yet.</p> : (
+              <ol className="mt-4 space-y-3">{orderActivity.entries.map((entry, index) => <li key={`${entry.activity_date}-${index}`} className="border-l-2 border-[#C2A36B] pl-4"><p className="font-semibold">{entry.status}</p><p className="text-sm text-slate-600">{entry.description}</p><p className="mt-1 text-xs text-slate-400">{new Date(entry.activity_date).toLocaleString("en-IN")}</p></li>)}</ol>
+            )}
+          </section>
+        )}
       </div>
+    );
+  }
+
+  function renderSuppliers() {
+    return (
+      <section className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-bold">Suppliers</h3>
+            <p className="mt-1 text-sm text-slate-500">Manage supplier contacts linked to inventory.</p>
+          </div>
+          <button type="button" onClick={() => { setEditingSupplierId(null); setSupplierName(""); setSupplierContact(""); setSupplierPhone(""); setSupplierEmail(""); setSupplierAddress(""); setSupplierMessage(""); }} className="rounded-lg bg-[#C2A36B] px-4 py-2 text-sm font-semibold text-[#0B211C]">New supplier</button>
+        </div>
+
+        <form onSubmit={(event) => { event.preventDefault(); void saveSupplier(); }} className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div><label htmlFor="supplier-name" className="mb-1 block text-sm font-semibold">Supplier name</label><input id="supplier-name" value={supplierName} maxLength={100} onChange={(event) => setSupplierName(event.target.value)} required className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+          <div><label htmlFor="supplier-contact" className="mb-1 block text-sm font-semibold">Contact person</label><input id="supplier-contact" value={supplierContact} maxLength={100} onChange={(event) => setSupplierContact(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+          <div><label htmlFor="supplier-phone" className="mb-1 block text-sm font-semibold">Phone</label><input id="supplier-phone" type="tel" value={supplierPhone} maxLength={15} onChange={(event) => setSupplierPhone(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+          <div><label htmlFor="supplier-email" className="mb-1 block text-sm font-semibold">Email</label><input id="supplier-email" type="email" value={supplierEmail} maxLength={150} onChange={(event) => setSupplierEmail(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+          <div><label htmlFor="supplier-address" className="mb-1 block text-sm font-semibold">Address</label><input id="supplier-address" value={supplierAddress} onChange={(event) => setSupplierAddress(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+          <div className="flex items-end"><button type="submit" disabled={supplierSubmitting} className="w-full rounded-lg bg-[#062C24] px-4 py-2 font-semibold text-white disabled:opacity-50">{supplierSubmitting ? "Saving…" : editingSupplierId === null ? "Add supplier" : "Save supplier"}</button></div>
+        </form>
+        {supplierMessage && <p role="status" className="mt-3 text-sm text-slate-600">{supplierMessage}</p>}
+
+        {suppliersLoading ? <p className="mt-5 text-sm text-slate-500">Loading suppliers…</p> : suppliersError ? (
+          <div className="mt-4"><p role="alert" className="text-sm text-red-700">{suppliersError}</p><button type="button" onClick={() => void fetchSuppliers()} className="mt-2 rounded-lg border px-3 py-2 text-sm">Retry</button></div>
+        ) : suppliers.length === 0 ? <p className="mt-5 text-sm text-slate-500">No suppliers have been added.</p> : (
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[700px] text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">Supplier</th><th className="p-3">Contact</th><th className="p-3">Phone</th><th className="p-3">Email</th><th className="p-3">Actions</th></tr></thead>
+              <tbody>{suppliers.map((supplier) => (
+                <tr key={supplier.supplier_id} className="border-t border-slate-100">
+                  <td className="p-3"><span className="font-semibold">{supplier.supplier_name}</span>{supplier.address && <span className="mt-1 block text-xs text-slate-500">{supplier.address}</span>}</td>
+                  <td className="p-3">{supplier.contact_person || "—"}</td><td className="p-3">{supplier.phone || "—"}</td><td className="p-3">{supplier.email || "—"}</td>
+                  <td className="p-3"><div className="flex gap-2"><button type="button" onClick={() => { setEditingSupplierId(supplier.supplier_id); setSupplierName(supplier.supplier_name); setSupplierContact(supplier.contact_person || ""); setSupplierPhone(supplier.phone || ""); setSupplierEmail(supplier.email || ""); setSupplierAddress(supplier.address || ""); setSupplierMessage(""); }} className="rounded-md border px-2.5 py-1.5 text-xs font-semibold">Edit</button><button type="button" onClick={() => void deleteSupplier(supplier.supplier_id, supplier.supplier_name)} className="rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700">Delete</button></div></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+      </section>
     );
   }
 
@@ -1371,17 +1898,40 @@ onSubmit={(event) => {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              fetchInventory();
-              fetchTransactions();
-            }}
-            disabled={inventoryLoading || transactionsLoading}
-            className="rounded-lg bg-slate-800 px-4 py-2 text-white disabled:opacity-50"
-          >
-            Refresh Inventory
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => { setShowInventoryForm((current) => !current); setInventoryCreateMessage(""); }} className="rounded-lg bg-[#C2A36B] px-4 py-2 font-semibold text-[#0B211C]">
+              {showInventoryForm ? "Close item form" : "+ Add inventory item"}
+            </button>
+            <button onClick={() => { setShowSupplierForm((current) => !current); setSupplierMessage(""); }} className="rounded-lg border border-slate-200 bg-white px-4 py-2 font-semibold text-slate-700">
+              {showSupplierForm ? "Close suppliers" : "Manage suppliers"}
+            </button>
+            <button
+              onClick={() => { void Promise.all([fetchInventory(), fetchTransactions(), fetchSuppliers()]); }}
+              disabled={inventoryLoading || transactionsLoading}
+              className="rounded-lg bg-slate-800 px-4 py-2 text-white disabled:opacity-50"
+            >
+              Refresh inventory
+            </button>
+          </div>
         </div>
+
+        {showInventoryForm && (
+          <section className="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-bold">Add inventory item</h3>
+            <p className="mt-1 text-sm text-slate-500">Opening stock is recorded in the inventory transaction history.</p>
+            <form onSubmit={createInventoryItem} className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div><label htmlFor="ingredient-name" className="mb-1 block text-sm font-semibold">Ingredient name</label><input id="ingredient-name" value={inventoryName} maxLength={100} onChange={(event) => setInventoryName(event.target.value)} required className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+              <div><label htmlFor="ingredient-unit" className="mb-1 block text-sm font-semibold">Unit</label><input id="ingredient-unit" value={inventoryUnit} maxLength={20} onChange={(event) => setInventoryUnit(event.target.value)} required placeholder="kg, litre, pcs" className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+              <div><label htmlFor="ingredient-opening-stock" className="mb-1 block text-sm font-semibold">Opening stock</label><input id="ingredient-opening-stock" type="number" min="0" max="99999999.99" step="0.01" value={inventoryInitialQuantity} onChange={(event) => setInventoryInitialQuantity(event.target.value)} required className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+              <div><label htmlFor="ingredient-minimum-stock" className="mb-1 block text-sm font-semibold">Low-stock threshold</label><input id="ingredient-minimum-stock" type="number" min="0" max="99999999.99" step="0.01" value={inventoryMinimumStock} onChange={(event) => setInventoryMinimumStock(event.target.value)} required className="w-full rounded-lg border border-slate-300 px-3 py-2" /></div>
+              <div><label htmlFor="ingredient-supplier" className="mb-1 block text-sm font-semibold">Supplier (optional)</label><select id="ingredient-supplier" value={inventorySupplierId} onChange={(event) => setInventorySupplierId(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="">No supplier assigned</option>{suppliers.map((supplier) => <option key={supplier.supplier_id} value={supplier.supplier_id}>{supplier.supplier_name}</option>)}</select></div>
+              <div className="flex items-end"><button type="submit" disabled={inventoryCreating} className="w-full rounded-lg bg-[#C2A36B] px-4 py-2 font-semibold text-[#0B211C] disabled:opacity-50">{inventoryCreating ? "Creating…" : "Create inventory item"}</button></div>
+              {inventoryCreateMessage && <p role="status" className="text-sm text-slate-600 sm:col-span-2 xl:col-span-3">{inventoryCreateMessage}</p>}
+            </form>
+          </section>
+        )}
+
+        {showSupplierForm && renderSuppliers()}
 
         <div className="grid gap-5 sm:grid-cols-3">
           <div className="rounded-2xl bg-white p-6 shadow-sm">
@@ -1968,16 +2518,16 @@ onSubmit={(event) => {
         </section>
 
    {/* Customer reviews */}
-{(userRole === "ADMIN" || userRole === "STAFF") && (
+  {(userRole === "ADMIN" || userRole === "STAFF" || userRole === "CUSTOMER") && (
   <section className="rounded-2xl bg-white p-6 shadow-sm">
-    <h3 className="text-xl font-bold">Customer Reviews</h3>
+    <h3 className="text-xl font-bold">{userRole === "CUSTOMER" ? "My Feedback" : "Customer Reviews"}</h3>
 
     <p className="mt-1 text-sm text-slate-500">
-      Reviews retrieved from the MongoDB customer_feedback collection.
+      {userRole === "CUSTOMER" ? "Feedback submitted from your account." : "Reviews retrieved from the MongoDB customer_feedback collection."}
     </p>
 
     {feedbackLoading ? (
-      <p className="mt-5 text-slate-500">Loading customer reviews...</p>
+      <p className="mt-5 text-slate-500">Loading feedback...</p>
     ) : feedbackError ? (
       <div className="mt-5">
         <p className="text-red-600">{feedbackError}</p>
@@ -1990,7 +2540,7 @@ onSubmit={(event) => {
       </div>
     ) : feedbacks.length === 0 ? (
       <p className="mt-5 text-slate-500">
-        No customer feedback available yet.
+        {userRole === "CUSTOMER" ? "You have not submitted feedback yet." : "No customer feedback available yet."}
       </p>
     ) : (
       <div className="mt-5 space-y-4">
@@ -2204,7 +2754,7 @@ onSubmit={(event) => {
 
     return (
       <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[650px] text-left text-sm">
+        <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
               <th className="p-3">Order ID</th>
@@ -2212,7 +2762,9 @@ onSubmit={(event) => {
               <th className="p-3">Date</th>
               <th className="p-3">Items</th>
               <th className="p-3">Amount</th>
+              <th className="p-3">Payment</th>
               <th className="p-3">Status</th>
+              <th className="p-3">Activity</th>
             </tr>
           </thead>
 
@@ -2245,24 +2797,101 @@ onSubmit={(event) => {
                 </td>
 
                 <td className="p-3">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      order.order_status === "COMPLETED"
-                        ? "bg-green-100 text-green-700"
-                        : order.order_status === "CANCELLED"
-                          ? "bg-red-100 text-red-700"
-                          : order.order_status === "READY"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {order.order_status}
-                  </span>
+                  {order.payment_method ? (
+                    <span className="text-xs font-semibold text-slate-600">{order.payment_method === "CASH" ? "Cash on Delivery" : `Demo ${order.payment_method}`} · {order.payment_status}</span>
+                  ) : <span className="text-xs text-slate-400">Not recorded</span>}
                 </td>
+
+                <td className="p-3">
+                  <div className="flex flex-col items-start gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        order.order_status === "COMPLETED"
+                          ? "bg-green-100 text-green-700"
+                          : order.order_status === "CANCELLED"
+                            ? "bg-red-100 text-red-700"
+                            : order.order_status === "READY"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {order.order_status}
+                    </span>
+                    {(userRole === "ADMIN" || userRole === "STAFF") && (
+                      <select
+                        aria-label={`Update order ${order.order_id} status`}
+                        value={order.order_status}
+                        disabled={orderUpdatingId === order.order_id || (nextOrderStatuses[order.order_status] || []).length === 0}
+                        onChange={(event) => void updateOrderStatus(order.order_id, event.target.value)}
+                        className="max-w-40 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs disabled:bg-slate-50 disabled:text-slate-400"
+                      >
+                        <option value={order.order_status}>{order.order_status}</option>
+                        {(nextOrderStatuses[order.order_status] || []).map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </td>
+                <td className="p-3"><button onClick={() => void viewOrderActivity(order.order_id)} disabled={orderActivityLoading} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold">History</button></td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+    );
+  }
+
+  function renderPayments() {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold">{userRole === "CUSTOMER" ? "My Payment History" : "Payments"}</h2>
+            <p className="mt-1 text-sm text-slate-500">{userRole === "CUSTOMER" ? "Payments linked to your orders." : "Payment records across all customer orders."}</p>
+          </div>
+          <button onClick={() => void fetchPayments()} disabled={paymentsLoading} className="rounded-lg bg-slate-800 px-4 py-2 text-white disabled:opacity-50">{paymentsLoading ? "Refreshing…" : "Refresh payments"}</button>
+        </div>
+
+        {userRole === "ADMIN" && paymentSummary && (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-sm text-slate-500">Paid Revenue</p><p className="mt-2 text-2xl font-bold">₹{Number(paymentSummary.total_revenue).toFixed(2)}</p><p className="mt-1 text-xs text-slate-400">Successful payments only</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-sm text-slate-500">Successful</p><p className="mt-2 text-2xl font-bold">{paymentSummary.successful_payments}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-sm text-slate-500">Pending</p><p className="mt-2 text-2xl font-bold">{paymentSummary.pending_payments}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-sm text-slate-500">Failed</p><p className="mt-2 text-2xl font-bold">{paymentSummary.failed_payments}</p></div>
+          </div>
+        )}
+
+        {userRole === "ADMIN" && (
+          <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <label className="text-sm font-medium">Status <select aria-label="Filter payments by status" value={paymentStatusFilter} onChange={(event) => setPaymentStatusFilter(event.target.value)} className="ml-2 rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="">All</option><option value="PENDING">Pending</option><option value="SUCCESS">Success</option><option value="FAILED">Failed</option><option value="REFUNDED">Refunded</option></select></label>
+            <label className="text-sm font-medium">Method <select aria-label="Filter payments by method" value={paymentMethodFilter} onChange={(event) => setPaymentMethodFilter(event.target.value)} className="ml-2 rounded-lg border border-slate-300 bg-white px-3 py-2"><option value="">All</option><option value="CASH">Cash on Delivery</option><option value="UPI">UPI Demo</option><option value="CARD">Card Demo</option></select></label>
+          </div>
+        )}
+
+        {paymentsError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{paymentsError}</p>}
+        {selectedPayment && (
+          <section className="rounded-2xl border border-[#E9DFC9] bg-[#FAF8F2] p-5">
+            <div className="flex items-center justify-between"><h3 className="text-lg font-bold">Payment #{selectedPayment.payment_id} details</h3><button onClick={() => setSelectedPayment(null)} className="text-sm font-semibold text-[#806333]">Close</button></div>
+            <p className="mt-3 text-sm text-slate-700">Order #{selectedPayment.order_id} · ₹{Number(selectedPayment.amount).toFixed(2)} · {selectedPayment.payment_method} · {selectedPayment.payment_status}</p>
+            {selectedPayment.customer_name && <p className="mt-1 text-sm text-slate-500">Customer: {selectedPayment.customer_name}</p>}
+            <p className="mt-1 text-sm text-slate-500">Recorded {new Date(selectedPayment.payment_date).toLocaleString("en-IN")}</p>
+          </section>
+        )}
+
+        <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {paymentsLoading ? <p className="p-6 text-slate-500">Loading payment history…</p> : payments.length === 0 ? <p className="p-6 text-slate-500">No payment records found.</p> : (
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">Payment</th><th className="p-3">Order</th>{userRole === "ADMIN" && <th className="p-3">Customer</th>}<th className="p-3">Amount</th><th className="p-3">Method</th><th className="p-3">Status</th><th className="p-3">Date</th><th className="p-3">Actions</th></tr></thead>
+              <tbody>{payments.map((payment) => (
+                <tr key={payment.payment_id} className="border-t border-slate-100">
+                  <td className="p-3 font-semibold">#{payment.payment_id}</td><td className="p-3">#{payment.order_id}</td>{userRole === "ADMIN" && <td className="p-3">{payment.customer_name || "Customer"}</td>}<td className="p-3 font-semibold">₹{Number(payment.amount).toFixed(2)}</td><td className="p-3">{payment.payment_method === "CASH" ? "Cash on Delivery" : `${payment.payment_method} demo`}</td><td className="p-3"><span className="rounded-full bg-[#F8F3E8] px-3 py-1 text-xs font-semibold text-[#806333]">{payment.payment_status}</span></td><td className="p-3">{new Date(payment.payment_date).toLocaleString("en-IN")}</td>
+                  <td className="p-3"><div className="flex gap-2"><button onClick={() => void showPaymentDetails(payment.payment_id)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold">Details</button>{userRole === "ADMIN" && payment.payment_method === "CASH" && payment.payment_status === "PENDING" && <button onClick={() => void markCashCollected(payment.payment_id)} className="rounded-lg bg-[#C2A36B] px-3 py-1.5 text-xs font-semibold text-white">Mark collected</button>}{userRole === "CUSTOMER" && payment.payment_status === "FAILED" && payment.payment_method !== "CASH" && <button onClick={() => void retryFailedPayment(payment.order_id)} className="rounded-lg bg-[#C2A36B] px-3 py-1.5 text-xs font-semibold text-white">Retry demo</button>}</div></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          )}
+        </section>
       </div>
     );
   }
@@ -2492,7 +3121,9 @@ function renderProfile() {
   const navItems = [
     { name: "Overview", icon: "📊" },
     { name: "Food Menu", icon: "🍽️" },
+    { name: "Categories", icon: "◈" },
     { name: "Orders", icon: "📦" },
+    { name: "Payments", icon: "◈" },
     { name: "Inventory", icon: "📋" },
     { name: "Reports", icon: "📈" },
     { name: "Feedback", icon: "⭐" },
@@ -2504,14 +3135,14 @@ function renderProfile() {
 
     if (userRole === "STAFF") {
       return [
-        "Overview", "Food Menu", "Orders",
+        "Overview", "Food Menu", "Orders", "Payments",
         "Reports", "Feedback", "My Profile",
       ].includes(item.name);
     }
 
     if (userRole === "CUSTOMER") {
       return [
-        "Overview", "Food Menu", "Orders",
+        "Overview", "Food Menu", "Orders", "Payments",
         "Feedback", "My Profile",
       ].includes(item.name);
     }
@@ -2629,7 +3260,9 @@ function renderProfile() {
           <div className="mx-auto w-full max-w-[1600px] p-5 md:p-8">
             {activeTab === "Overview" && renderOverview()}
             {activeTab === "Food Menu" && renderFoodMenu()}
+            {activeTab === "Categories" && userRole === "ADMIN" && renderCategories()}
             {activeTab === "Orders" && renderOrders()}
+            {activeTab === "Payments" && (userRole === "ADMIN" || userRole === "CUSTOMER") && renderPayments()}
             {activeTab === "Inventory" && renderInventory()}
             {activeTab === "Reports" && renderReports()}
             {activeTab === "Feedback" && renderFeedback()}
