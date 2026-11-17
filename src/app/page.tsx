@@ -1,223 +1,355 @@
 
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 
-const features = [
+const dishes = [
   {
-    icon: "🍽️",
-    title: "Explore Food",
-    description: "Discover delicious food and browse the canteen menu.",
+    name: "Classic Veg Meals",
+    category: "South Indian",
+    price: "₹80",
+    image:
+      "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=900&q=85",
+    tag: "Bestseller",
   },
   {
-    icon: "🛒",
-    title: "Easy Ordering",
-    description: "Place your food orders quickly and conveniently.",
+    name: "Paneer Rice",
+    category: "Chef's Special",
+    price: "₹70",
+    image:
+      "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=900&q=85",
+    tag: "Popular",
   },
   {
-    icon: "⚡",
-    title: "Save Time",
-    description: "Spend less time waiting and more time enjoying your meal.",
+    name: "Fresh Sandwich",
+    category: "Quick Bites",
+    price: "₹45",
+    image:
+      "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=900&q=85",
+    tag: "Fresh",
   },
 ];
 
-const steps = [
-  { number: "01", title: "Create an account", description: "Sign up or log in to your account." },
-  { number: "02", title: "Explore the menu", description: "Choose your favourite food items." },
-  { number: "03", title: "Place your order", description: "Submit your order and enjoy your food." },
+const benefits = [
+  {
+    number: "01",
+    title: "Freshly prepared",
+    description: "Enjoy delicious meals prepared fresh for your campus day.",
+  },
+  {
+    number: "02",
+    title: "Easy ordering",
+    description: "Browse the menu and place your order in just a few clicks.",
+  },
+  {
+    number: "03",
+    title: "Less waiting",
+    description: "Make your canteen experience smoother and more convenient.",
+  },
 ];
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main className="min-h-screen overflow-hidden bg-[#080d0b] text-white">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="text-3xl">🍴</span>
-            <span className="text-xl font-extrabold text-slate-900">
-              Smart Canteen
-            </span>
-          </Link>
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#080d0b]/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
+          <BrandLogo appearance="dark" />
 
-          <div className="hidden items-center gap-8 md:flex">
-            <a href="#home" className="font-medium hover:text-orange-600">Home</a>
-            <a href="#features" className="font-medium hover:text-orange-600">Features</a>
-            <a href="#how-it-works" className="font-medium hover:text-orange-600">How It Works</a>
-            <a href="#about" className="font-medium hover:text-orange-600">About</a>
+          <div className="hidden items-center gap-9 text-sm text-white/70 md:flex">
+            <a href="#home" className="transition hover:text-emerald-400">
+              Home
+            </a>
+            <a href="#menu" className="transition hover:text-emerald-400">
+              Menu
+            </a>
+            <a href="#about" className="transition hover:text-emerald-400">
+              Our Story
+            </a>
+            <a href="#contact" className="transition hover:text-emerald-400">
+              Contact
+            </a>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="rounded-xl px-4 py-2 font-semibold text-slate-800 hover:bg-slate-100"
+              className="hidden px-3 py-2 text-sm font-medium text-white/80 transition hover:text-emerald-400 sm:block"
             >
               Login
             </Link>
             <Link
               href="/signup"
-              className="rounded-xl bg-orange-500 px-5 py-2.5 font-bold text-white shadow-md transition hover:bg-orange-600"
+              className="rounded-full bg-[#C2A36B] px-5 py-3 text-xs font-bold tracking-wide text-[#0B211C] transition hover:-translate-y-0.5 hover:bg-[#D2B984]"
             >
-              Sign Up
+              ORDER ONLINE ↗
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section id="home" className="overflow-hidden bg-gradient-to-br from-orange-50 via-white to-amber-100">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 md:grid-cols-2">
+      <section
+        id="home"
+        className="relative isolate overflow-hidden"
+      >
+        <div className="absolute -right-40 top-10 -z-10 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute -left-40 bottom-0 -z-10 h-96 w-96 rounded-full bg-[#C2A36B]/10 blur-[120px]" />
+
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 md:grid-cols-2 md:px-8 md:py-28">
           <div>
-            <span className="inline-block rounded-full bg-orange-100 px-4 py-2 text-sm font-bold text-orange-700">
-              🍴 Welcome to Smart Canteen
-            </span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-4 py-2 text-xs tracking-widest text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              A BETTER CAMPUS FOOD EXPERIENCE
+            </div>
 
-            <h1 className="mt-6 text-5xl font-black leading-tight md:text-6xl">
-              Delicious Food.
-              <span className="block text-orange-500">Smarter Ordering.</span>
-            </h1>
+            <h2 className="mt-8 max-w-2xl font-serif text-5xl font-medium leading-[1.12] tracking-tight md:text-7xl">
+              Good food.
+              <br />
+              Great moments.
+              <br />
+              <span className="italic text-emerald-400">
+                Smarter living.
+              </span>
+            </h2>
 
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
-              Your campus food experience, made easier. Explore the menu,
-              order your favourite meals and enjoy a smarter canteen experience.
+            <p className="mt-7 max-w-lg text-base leading-8 text-white/55">
+              Your favourite campus meals, now just a few clicks away.
+              Explore the menu, order with ease and enjoy every moment
+              of your day.
             </p>
 
             <div className="mt-9 flex flex-wrap gap-4">
               <Link
                 href="/signup"
-                className="rounded-xl bg-orange-500 px-7 py-4 font-bold text-white shadow-lg transition hover:-translate-y-1 hover:bg-orange-600"
+                className="rounded-full bg-[#C2A36B] px-8 py-4 text-sm font-bold text-[#0B211C] transition hover:-translate-y-1 hover:bg-[#D2B984]"
               >
-                Get Started →
+                Explore & Order →
               </Link>
 
               <Link
                 href="/login"
-                className="rounded-xl border-2 border-slate-300 bg-white px-7 py-4 font-bold text-slate-800 transition hover:border-orange-500"
+                className="rounded-full border border-white/20 px-8 py-4 text-sm font-semibold text-white transition hover:border-emerald-400 hover:text-emerald-400"
               >
-                Login to Account
+                Sign In
               </Link>
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-8 text-sm text-slate-600">
+            <div className="mt-14 flex flex-wrap gap-10 border-t border-white/10 pt-8">
               <div>
-                <p className="text-2xl font-black text-slate-900">Easy</p>
-                <p>Food ordering</p>
+                <p className="font-serif text-3xl text-white">Fresh</p>
+                <p className="mt-1 text-xs text-white/40">Every day</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">Smart</p>
-                <p>Management</p>
+                <p className="font-serif text-3xl text-white">Simple</p>
+                <p className="mt-1 text-xs text-white/40">Ordering</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">Fast</p>
-                <p>Experience</p>
+                <p className="font-serif text-3xl text-white">Smart</p>
+                <p className="mt-1 text-xs text-white/40">Management</p>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-center">
-            <div className="relative flex h-80 w-80 items-center justify-center rounded-full bg-orange-200 shadow-2xl md:h-[440px] md:w-[440px]">
-              <div className="absolute inset-5 rounded-full border-2 border-dashed border-orange-400" />
-              <span className="text-[150px] md:text-[210px]">🍱</span>
-              <div className="absolute -bottom-3 right-0 rounded-2xl bg-white p-4 shadow-xl">
-                <p className="font-bold text-slate-900">Fresh & Delicious</p>
-                <p className="text-sm text-slate-500">Made for your day ❤️</p>
+          {/* Hero food image */}
+          <div className="relative mx-auto w-full max-w-xl">
+            <div className="absolute -inset-5 rounded-[40px] bg-emerald-500/10 blur-3xl" />
+
+            <div className="relative overflow-hidden rounded-[30px] border border-white/15 bg-[#111b16] p-3 shadow-2xl shadow-black/50">
+              <div
+                className="relative min-h-[390px] overflow-hidden rounded-[23px] bg-cover bg-center md:min-h-[510px]"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(0deg, rgba(0,0,0,.65), transparent 65%), url('https://images.unsplash.com/photo-1547592180-85f173990554?w=1200&q=90')",
+                }}
+              >
+                <div className="absolute left-5 top-5 rounded-full border border-white/20 bg-black/40 px-4 py-2 text-xs backdrop-blur-md">
+                  ✦ Made for your day
+                </div>
+
+                <div className="absolute bottom-6 left-6 right-6">
+                  <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">
+                    THE CAMPUS TABLE
+                  </p>
+                  <h3 className="mt-2 font-serif text-3xl md:text-4xl">
+                    Taste the good life.
+                  </h3>
+                  <p className="mt-2 text-sm text-white/70">
+                    Good food, great company, every single day.
+                  </p>
+                </div>
               </div>
-              <div className="absolute -left-5 top-12 rounded-2xl bg-white p-4 text-3xl shadow-lg">
-                🥗
-              </div>
-              <div className="absolute -right-3 top-20 rounded-2xl bg-white p-4 text-3xl shadow-lg">
-                🍔
+            </div>
+
+            <div className="absolute -bottom-7 -left-4 rounded-2xl border border-white/10 bg-[#14221a] p-4 shadow-xl md:-left-10">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🌿</span>
+                <div>
+                  <p className="text-sm font-bold">Fresh & Delicious</p>
+                  <p className="mt-1 text-xs text-white/50">
+                    Your campus food destination
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="mx-auto max-w-7xl px-6 py-24">
-        <div className="text-center">
-          <p className="font-bold uppercase tracking-widest text-orange-500">
-            Why Smart Canteen?
-          </p>
-          <h2 className="mt-3 text-4xl font-black">A Better Food Experience</h2>
-          <p className="mt-4 text-slate-500">
-            Everything you need for a convenient campus dining experience.
-          </p>
+      <section className="border-y border-white/10 bg-[#0d1510] px-5 py-20 md:px-8">
+        <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[.7fr_1.3fr] md:items-center">
+          <div>
+            <p className="text-xs font-bold tracking-[0.3em] text-[#C2A36B]">MADE FOR CAMPUS LIFE</p>
+            <h2 className="mt-4 font-serif text-4xl leading-tight md:text-5xl">A little more care in every meal.</h2>
+          </div>
+          <blockquote className="border-l border-[#C2A36B]/60 pl-7 md:pl-10">
+            <p className="font-serif text-2xl leading-relaxed text-white/85 md:text-3xl">“A warm meal, ready when you are. That’s one less thing to think about on a busy day.”</p>
+            <footer className="mt-6 text-xs uppercase tracking-[0.2em] text-white/45">The Smart Canteen experience</footer>
+          </blockquote>
         </div>
+      </section>
 
-        <div className="mt-14 grid gap-7 md:grid-cols-3">
-          {features.map((feature) => (
-            <div
-              key={feature.title}
-              className="rounded-3xl border border-slate-100 bg-white p-8 shadow-lg transition hover:-translate-y-2 hover:shadow-xl"
-            >
-              <div className="text-5xl">{feature.icon}</div>
-              <h3 className="mt-6 text-xl font-extrabold">{feature.title}</h3>
-              <p className="mt-3 leading-7 text-slate-500">
-                {feature.description}
+      {/* Featured Menu */}
+      <section id="menu" className="border-t border-white/10 bg-[#0d1510] py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <p className="text-xs font-bold tracking-[0.3em] text-emerald-400">
+                A LITTLE SOMETHING DELICIOUS
+              </p>
+              <h2 className="mt-4 font-serif text-4xl md:text-5xl">
+                The chef's picks.
+              </h2>
+              <p className="mt-3 text-sm text-white/45">
+                A taste of what awaits you at the canteen.
               </p>
             </div>
-          ))}
+
+            <Link
+              href="/login"
+              className="text-sm font-semibold text-emerald-400 transition hover:text-emerald-300"
+            >
+              Explore full menu ↗
+            </Link>
+          </div>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {dishes.map((dish) => (
+              <article
+                key={dish.name}
+                className="group overflow-hidden rounded-3xl border border-white/10 bg-[#121c16] transition duration-300 hover:-translate-y-2 hover:border-emerald-400/30"
+              >
+                <div className="relative h-60 overflow-hidden">
+                  <img
+                    src={dish.image}
+                    alt={dish.name}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                  />
+                  <span className="absolute left-4 top-4 rounded-full bg-[#102019]/90 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-300 backdrop-blur">
+                    {dish.tag}
+                  </span>
+                </div>
+
+                <div className="p-6">
+                  <p className="text-xs uppercase tracking-widest text-emerald-400">
+                    {dish.category}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <h3 className="font-serif text-2xl">{dish.name}</h3>
+                    <span className="text-lg font-bold text-[#D2B984]">
+                      {dish.price}
+                    </span>
+                  </div>
+                  <Link
+                    href="/login"
+                    className="mt-6 inline-flex text-sm font-semibold text-white/60 transition hover:text-emerald-400"
+                  >
+                    Order this item →
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="bg-slate-50 px-6 py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center">
-            <p className="font-bold uppercase tracking-widest text-orange-500">
-              Simple Process
+      {/* Benefits */}
+      <section id="about" className="py-24">
+        <div className="mx-auto max-w-7xl px-5 md:px-8">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold tracking-[0.3em] text-emerald-400">
+              MORE THAN JUST A MEAL
             </p>
-            <h2 className="mt-3 text-4xl font-black">How It Works</h2>
+            <h2 className="mt-4 font-serif text-4xl leading-tight md:text-5xl">
+              A simpler way to enjoy your campus day.
+            </h2>
           </div>
 
-          <div className="mt-14 grid gap-8 md:grid-cols-3">
-            {steps.map((step) => (
-              <div key={step.number} className="rounded-3xl bg-white p-8 shadow-md">
-                <p className="text-4xl font-black text-orange-500">{step.number}</p>
-                <h3 className="mt-5 text-xl font-bold">{step.title}</h3>
-                <p className="mt-3 text-slate-500">{step.description}</p>
+          <div className="mt-14 grid gap-10 md:grid-cols-3">
+            {benefits.map((benefit) => (
+              <div
+                key={benefit.number}
+                className="border-t border-white/15 pt-6"
+              >
+                <p className="font-serif text-4xl text-emerald-400">
+                  {benefit.number}
+                </p>
+                <h3 className="mt-6 text-xl font-semibold">
+                  {benefit.title}
+                </h3>
+                <p className="mt-3 max-w-xs text-sm leading-7 text-white/45">
+                  {benefit.description}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* About */}
-      <section id="about" className="mx-auto max-w-5xl px-6 py-24 text-center">
-        <span className="text-5xl">🏫</span>
-        <h2 className="mt-5 text-4xl font-black">About Smart Canteen</h2>
-        <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-          Smart Canteen Management System is designed to make campus food
-          services more convenient and organized through digital ordering,
-          inventory management and efficient canteen operations.
-        </p>
-
-        <Link
-          href="/signup"
-          className="mt-8 inline-block rounded-xl bg-orange-500 px-8 py-4 font-bold text-white transition hover:bg-orange-600"
-        >
-          Join Smart Canteen →
-        </Link>
+      {/* Call to action */}
+      <section className="px-5 pb-24 md:px-8">
+        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[32px] border border-emerald-300/20 bg-[#13271b] px-7 py-16 text-center md:py-20">
+          <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+          <div className="relative">
+            <p className="text-xs font-bold tracking-[0.3em] text-emerald-300">
+              YOUR NEXT FAVOURITE MEAL AWAITS
+            </p>
+            <h2 className="mx-auto mt-5 max-w-2xl font-serif text-4xl leading-tight md:text-6xl">
+              Craving something delicious?
+            </h2>
+            <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/55">
+              Make your next campus meal a little more special.
+              Join Smart Canteen and get started.
+            </p>
+            <Link
+              href="/signup"
+              className="mt-9 inline-flex rounded-full bg-[#C2A36B] px-9 py-4 text-sm font-bold text-[#0B211C] transition hover:-translate-y-1 hover:bg-[#D2B984]"
+            >
+              Get Started Today →
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-950 px-6 py-10 text-white">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 md:flex-row">
-          <div>
-            <p className="text-xl font-extrabold">🍴 Smart Canteen</p>
-            <p className="mt-2 text-sm text-slate-400">
-              Management System
-            </p>
-          </div>
+      <footer
+        id="contact"
+        className="border-t border-white/10 bg-[#060a08] px-5 py-10 md:px-8"
+      >
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 md:flex-row md:items-center">
+          <BrandLogo appearance="dark" size="compact" />
 
-          <p className="text-sm text-slate-400">
-            © {new Date().getFullYear()} Smart Canteen Management System.
-            All rights reserved.
-          </p>
-
-          <div className="flex gap-5">
-            <Link href="/login" className="text-sm hover:text-orange-400">Login</Link>
-            <Link href="/signup" className="text-sm hover:text-orange-400">Sign Up</Link>
+          <div className="flex flex-wrap gap-6 text-sm text-white/50">
+            <a href="#home" className="hover:text-emerald-400">Home</a>
+            <a href="#menu" className="hover:text-emerald-400">Menu</a>
+            <a href="#about" className="hover:text-emerald-400">About</a>
+            <Link href="/login" className="hover:text-emerald-400">Login</Link>
+            <Link href="/signup" className="hover:text-emerald-400">Sign Up</Link>
           </div>
+        </div>
+
+        <div className="mx-auto mt-8 max-w-7xl border-t border-white/10 pt-6 text-center text-xs text-white/30">
+          © {new Date().getFullYear()} Smart Canteen Management System.
+          All rights reserved.
         </div>
       </footer>
     </main>

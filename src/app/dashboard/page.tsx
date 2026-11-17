@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
 
 type MenuItem = {
   item_id: number;
@@ -741,7 +742,7 @@ function renderOverview() {
 
       {/* Welcome */}
       <section>
-        <p className="text-xs font-bold uppercase tracking-widest text-orange-600">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#9B7A43]">
           CANTEEN DASHBOARD
         </p>
         <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
@@ -780,7 +781,7 @@ function renderOverview() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-slate-500">Menu Items</p>
-            <span className="rounded-xl bg-orange-50 p-3 text-xl">🍽️</span>
+            <span className="rounded-xl bg-[#F8F3E8] p-3 text-xl">🍽️</span>
           </div>
           <h3 className="mt-5 text-3xl font-bold text-slate-900">
             {menuItems.length}
@@ -811,7 +812,7 @@ function renderOverview() {
           </div>
           <button
             onClick={() => setActiveTab("Orders")}
-            className="rounded-xl bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-100"
+            className="rounded-xl bg-[#F8F3E8] px-4 py-2 text-sm font-semibold text-[#9B7A43] hover:bg-[#F2E8D2]"
           >
             View All →
           </button>
@@ -900,7 +901,7 @@ function renderOverview() {
             <button
               key={action.name}
               onClick={() => setActiveTab(action.name)}
-              className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 text-left transition hover:border-orange-300 hover:bg-orange-50"
+              className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 text-left transition hover:border-[#C2A36B] hover:bg-[#F8F3E8]"
             >
               <span className="text-2xl">{action.icon}</span>
               <span>
@@ -944,7 +945,7 @@ function renderOverview() {
         setFoodMessage("");
         setShowFoodForm(!showFoodForm);
       }}
-      className="rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white hover:bg-orange-600"
+      className="rounded-lg bg-[#C2A36B] px-4 py-2 font-semibold text-white hover:bg-[#9B7A43]"
     >
       + Add Food Item
     </button>
@@ -1078,7 +1079,7 @@ onSubmit={(event) => {
         <button
           type="submit"
           disabled={foodSaving}
-          className="rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+          className="rounded-lg bg-[#C2A36B] px-4 py-2 font-semibold text-white hover:bg-[#9B7A43] disabled:opacity-50"
         >
          {editingFoodId !== null
   ? foodUpdating
@@ -1114,8 +1115,8 @@ onSubmit={(event) => {
               onClick={() => setCategory(item)}
               className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
                 category === item
-                  ? "bg-orange-500 text-white"
-                  : "bg-white text-slate-600 hover:bg-orange-50"
+                  ? "bg-[#C2A36B] text-white"
+                  : "bg-white text-slate-600 hover:bg-[#F8F3E8]"
               }`}
             >
               {item}
@@ -1132,7 +1133,7 @@ onSubmit={(event) => {
             <p className="text-red-600">{menuError}</p>
             <button
               onClick={fetchMenu}
-              className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
+              className="mt-3 rounded-lg bg-[#C2A36B] px-4 py-2 text-white"
             >
               Retry
             </button>
@@ -1169,7 +1170,7 @@ onSubmit={(event) => {
                     </p>
                   </div>
 
-                  <span className="whitespace-nowrap text-lg font-bold text-orange-600">
+                  <span className="whitespace-nowrap text-lg font-bold text-[#9B7A43]">
                     ₹{Number(item.price).toFixed(2)}
                   </span>
                 </div>
@@ -1193,7 +1194,7 @@ onSubmit={(event) => {
   <button
     onClick={() => addToCart(item.item_id)}
     disabled={!item.is_available}
-    className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-300"
+    className="rounded-lg bg-[#C2A36B] px-4 py-2 text-sm font-semibold text-white hover:bg-[#9B7A43] disabled:cursor-not-allowed disabled:bg-slate-300"
   >
     Add to Cart
   </button>
@@ -1303,7 +1304,7 @@ onSubmit={(event) => {
                 <button
                   onClick={placeOrder}
                   disabled={placingOrder}
-                  className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+                  className="rounded-xl bg-[#C2A36B] px-6 py-3 font-semibold text-white hover:bg-[#9B7A43] disabled:opacity-50"
                 >
                   {placingOrder ? "Placing Order..." : "Place Order"}
                 </button>
@@ -1414,7 +1415,7 @@ onSubmit={(event) => {
             <p className="text-red-600">{inventoryError}</p>
             <button
               onClick={fetchInventory}
-              className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
+              className="mt-3 rounded-lg bg-[#C2A36B] px-4 py-2 text-white"
             >
               Retry
             </button>
@@ -1658,7 +1659,7 @@ onSubmit={(event) => {
           </p>
           <button
             onClick={fetchReports}
-            className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
+            className="mt-3 rounded-lg bg-[#C2A36B] px-4 py-2 text-white"
           >
             Retry
           </button>
@@ -1772,7 +1773,7 @@ onSubmit={(event) => {
                         Quantity sold: {item.total_quantity}
                       </p>
                     </div>
-                    <p className="font-bold text-orange-600">
+                    <p className="font-bold text-[#9B7A43]">
                       ₹{Number(item.total_revenue).toFixed(2)}
                     </p>
                   </div>
@@ -1894,7 +1895,7 @@ onSubmit={(event) => {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-orange-500"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[#C2A36B]"
               />
             </div>
 
@@ -1905,7 +1906,7 @@ onSubmit={(event) => {
               <select
                 value={foodItem}
                 onChange={(e) => setFoodItem(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-orange-500"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#C2A36B]"
               >
                 <option value="">Select a food item</option>
                 {menuItems.map((item) => (
@@ -1923,7 +1924,7 @@ onSubmit={(event) => {
               <select
                 value={feedbackRating}
                 onChange={(e) => setFeedbackRating(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-orange-500"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#C2A36B]"
               >
                 <option value="5">★★★★★ - Excellent</option>
                 <option value="4">★★★★ - Very Good</option>
@@ -1942,7 +1943,7 @@ onSubmit={(event) => {
                 onChange={(e) => setFeedbackComment(e.target.value)}
                 placeholder="Write your experience..."
                 rows={3}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-orange-500"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[#C2A36B]"
               />
             </div>
           </div>
@@ -1950,7 +1951,7 @@ onSubmit={(event) => {
           <button
             onClick={submitFeedback}
             disabled={feedbackSubmitting}
-            className="mt-5 rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 rounded-xl bg-[#C2A36B] px-6 py-3 font-semibold text-white hover:bg-[#9B7A43] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {feedbackSubmitting ? "Submitting..." : "Submit Feedback"}
           </button>
@@ -1982,7 +1983,7 @@ onSubmit={(event) => {
         <p className="text-red-600">{feedbackError}</p>
         <button
           onClick={fetchFeedback}
-          className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
+          className="mt-3 rounded-lg bg-[#C2A36B] px-4 py-2 text-white"
         >
           Retry
         </button>
@@ -2187,7 +2188,7 @@ onSubmit={(event) => {
           <p className="text-red-600">{ordersError}</p>
           <button
             onClick={fetchOrders}
-            className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
+            className="mt-3 rounded-lg bg-[#C2A36B] px-4 py-2 text-white"
           >
             Retry
           </button>
@@ -2298,7 +2299,7 @@ onSubmit={(event) => {
             <p className="text-red-600">{transactionsError}</p>
             <button
               onClick={fetchTransactions}
-              className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-white"
+              className="mt-3 rounded-lg bg-[#C2A36B] px-4 py-2 text-white"
             >
               Retry
             </button>
@@ -2398,11 +2399,11 @@ function renderProfile() {
       </div>
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="h-36 bg-gradient-to-r from-slate-900 via-slate-800 to-orange-500" />
+        <div className="h-36 bg-gradient-to-r from-slate-900 via-slate-800 to-[#C2A36B]" />
 
         <div className="px-7 pb-8">
           <div className="-mt-14 flex flex-wrap items-end gap-5">
-            <div className="flex h-28 w-28 items-center justify-center rounded-3xl border-4 border-white bg-orange-100 text-4xl font-extrabold text-orange-600 shadow-lg">
+            <div className="flex h-28 w-28 items-center justify-center rounded-3xl border-4 border-white bg-[#F2E8D2] text-4xl font-extrabold text-[#9B7A43] shadow-lg">
               {initials}
             </div>
 
@@ -2449,7 +2450,7 @@ function renderProfile() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Account Role
                 </p>
-                <p className="mt-2 font-bold text-orange-600">
+                <p className="mt-2 font-bold text-[#9B7A43]">
                   {currentUser.role}
                 </p>
               </div>
@@ -2465,11 +2466,11 @@ function renderProfile() {
             </div>
           </div>
 
-          <div className="mt-8 rounded-2xl bg-orange-50 p-5">
-            <h4 className="font-bold text-orange-800">
+          <div className="mt-8 rounded-2xl bg-[#F8F3E8] p-5">
+            <h4 className="font-bold text-[#5F4928]">
               Account Security
             </h4>
-            <p className="mt-2 text-sm leading-6 text-orange-700">
+            <p className="mt-2 text-sm leading-6 text-[#765B31]">
               Your account is protected through authenticated sessions.
               Always log out when using a shared computer.
             </p>
@@ -2520,26 +2521,14 @@ function renderProfile() {
 
   // Main application layout
   return (
-    <div className="min-h-screen bg-[#F5F7FB] text-slate-800">
+    <div className="min-h-screen bg-[#F4F0E6] text-slate-800">
       <div className="flex min-h-screen flex-col md:flex-row">
 
         {/* Sidebar */}
-        <aside className="flex w-full shrink-0 flex-col bg-[#111C32] text-white md:sticky md:top-0 md:h-screen md:w-[250px]">
+        <aside className="flex w-full shrink-0 flex-col bg-[#062C24] text-white md:sticky md:top-0 md:h-screen md:w-[250px]">
 
           <div className="border-b border-white/10 px-6 py-7">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500 text-xl">
-                🍴
-              </div>
-              <div>
-                <h1 className="text-lg font-bold tracking-tight">
-                  Smart Canteen
-                </h1>
-                <p className="text-xs text-slate-400">
-                  Management System
-                </p>
-              </div>
-            </div>
+            <BrandLogo appearance="dark" size="compact" />
           </div>
 
           <div className="px-5 pt-7 pb-3 text-[10px] font-bold uppercase tracking-[2px] text-slate-500">
@@ -2553,7 +2542,7 @@ function renderProfile() {
                 onClick={() => setActiveTab(item.name)}
                 className={`flex min-w-fit items-center gap-3 rounded-xl px-4 py-3.5 text-left text-sm font-semibold transition-all ${
                   activeTab === item.name
-                    ? "bg-orange-500 text-white shadow-lg shadow-orange-950/20"
+                    ? "bg-[#C2A36B] text-white shadow-lg shadow-orange-950/20"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -2587,7 +2576,7 @@ function renderProfile() {
 
           <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-5 py-4 backdrop-blur md:px-8">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[1.8px] text-orange-600">
+              <p className="text-[11px] font-bold uppercase tracking-[1.8px] text-[#9B7A43]">
                 Smart Canteen / Workspace
               </p>
               <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
@@ -2607,9 +2596,9 @@ function renderProfile() {
               {currentUser && (
                 <button
                   onClick={() => setActiveTab("My Profile")}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-orange-300"
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#C2A36B]"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 font-bold text-orange-700">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F2E8D2] font-bold text-[#765B31]">
                     {currentUser.full_name
                       .split(" ")
                       .map((name) => name[0])

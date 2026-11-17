@@ -1,12 +1,12 @@
-
 "use client";
 
+import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -14,222 +14,30 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
+    e.preventDefault(); setError(""); setLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
+      const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
       const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Login failed");
-        return;
-      }
-
-      // Redirect to the existing dashboard after login
-      router.replace("/dashboard");
-      router.refresh();
-    } catch {
-      setError("Unable to connect to the server");
-    } finally {
-      setLoading(false);
-    }
+      if (!response.ok) { setError(data.message || "Login failed"); return; }
+      router.replace("/dashboard"); router.refresh();
+    } catch { setError("Unable to connect to the server. Please try again."); }
+    finally { setLoading(false); }
   }
 
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "#f1f5f9",
-        padding: "20px",
-      }}
-    >
-      <form
-        onSubmit={handleLogin}
-        style={{
-          background: "#ffffff",
-          padding: "40px",
-          borderRadius: "16px",
-          width: "100%",
-          maxWidth: "420px",
-          boxShadow: "0 10px 35px rgba(0,0,0,0.10)",
-        }}
-      >
-        <div style={{ textAlign: "center", marginBottom: "30px" }}>
-          <h1
-            style={{
-              fontSize: "30px",
-              fontWeight: "800",
-              color: "#111827",
-              marginBottom: "8px",
-            }}
-          >
-            Smart Canteen
-          </h1>
-
-          <p style={{ color: "#64748b", fontSize: "15px" }}>
-            Welcome back! Sign in to continue.
-          </p>
-        </div>
-
-        <label
-          style={{
-            display: "block",
-            color: "#1f2937",
-            fontWeight: "600",
-            marginBottom: "8px",
-          }}
-        >
-          Email Address
-        </label>
-
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          placeholder="Enter your email"
-          style={{
-            width: "100%",
-            boxSizing: "border-box",
-            padding: "14px",
-            marginBottom: "22px",
-            border: "1px solid #cbd5e1",
-            borderRadius: "8px",
-            fontSize: "15px",
-            color: "#111827",
-            backgroundColor: "#ffffff",
-            outlineColor: "#2563eb",
-          }}
-        />
-
-        <label
-          style={{
-            display: "block",
-            color: "#1f2937",
-            fontWeight: "600",
-            marginBottom: "8px",
-          }}
-        >
-          Password
-        </label>
-
-        <div style={{ position: "relative", marginBottom: "22px" }}>
-          <input
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="Enter your password"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "14px 48px 14px 14px",
-              border: "1px solid #cbd5e1",
-              borderRadius: "8px",
-              fontSize: "15px",
-              color: "#111827",
-              backgroundColor: "#ffffff",
-              outlineColor: "#2563eb",
-            }}
-          />
-
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            aria-pressed={showPassword}
-            style={{
-              position: "absolute",
-              right: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              color: "#64748b",
-              fontSize: "20px",
-              padding: "4px",
-            }}
-          >
-            {showPassword ? "🙈" : "👁️"}
-          </button>
-        </div>
-
-        {error && (
-          <p
-            style={{
-              color: "#dc2626",
-              background: "#fef2f2",
-              padding: "12px",
-              borderRadius: "8px",
-              fontSize: "14px",
-              marginBottom: "18px",
-            }}
-          >
-            {error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "15px",
-            background: loading ? "#64748b" : "#2563eb",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: loading ? "not-allowed" : "pointer",
-            fontSize: "16px",
-            fontWeight: "700",
-          }}
-        >
-          {loading ? "Signing in..." : "Login"}
-        </button>
-
-        <p
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "14px",
-            marginTop: "22px",
-          }}
-        >
-          Don't have an account?{" "}
-          <a
-            href="/signup"
-            style={{
-              color: "#2563eb",
-              fontWeight: "700",
-              textDecoration: "none",
-            }}
-          >
-            Sign Up
-          </a>
-        </p>
-
-        <p
-          style={{
-            textAlign: "center",
-            color: "#64748b",
-            fontSize: "13px",
-            marginTop: "20px",
-          }}
-        >
-          Smart Canteen Management System
-        </p>
-      </form>
-    </main>
-  );
+  return <main className="auth-shell">
+    <div className="auth-photo" aria-hidden="true"><div className="auth-photo-copy"><span>THE CAMPUS TABLE</span><p>A thoughtful pause<br/>in the middle of your day.</p></div></div>
+    <section className="auth-panel">
+      <BrandLogo appearance="dark" />
+      <div className="auth-content"><p className="eyebrow">WELCOME BACK</p><h1>Good to see<br/><em>you again.</em></h1><p className="auth-intro">Sign in to continue to your campus table.</p>
+        <form onSubmit={handleLogin} className="auth-form">
+          <label htmlFor="email">Email address</label><input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" />
+          <label htmlFor="password">Password</label><div className="password-field"><input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Enter your password"/><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>{showPassword ? "Hide" : "Show"}</button></div>
+          {error && <p className="form-message error" role="alert">{error}</p>}
+          <button type="submit" disabled={loading} className="auth-submit">{loading ? "Signing in…" : "Sign in"}<span aria-hidden="true">↗</span></button>
+        </form>
+        <p className="auth-switch">New to Smart Canteen? <Link href="/signup">Create an account</Link></p>
+      </div>
+      <p className="auth-footnote">A better dining experience, made for campus.</p>
+    </section>
+  </main>;
 }
